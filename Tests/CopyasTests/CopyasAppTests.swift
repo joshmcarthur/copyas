@@ -39,6 +39,22 @@ final class CopyasAppTests: XCTestCase {
         )
     }
 
+    func testUnknownTransformWritesStderrAndExits64() async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let environment = makeEnvironment(
+            arguments: ["-t", "lolcat"],
+            stdout: stdout,
+            stderr: stderr
+        )
+
+        let exitCode = await CopyasApp.run(environment: environment)
+
+        XCTAssertEqual(exitCode, 64)
+        XCTAssertEqual(stderr.value, "error: unknown transform \"lolcat\"\n")
+        XCTAssertTrue(stdout.value.isEmpty)
+    }
+
     func testEmptyInputWritesStderrAndExits6() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()

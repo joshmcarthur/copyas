@@ -12,10 +12,14 @@ public enum CopyasApp {
                 return 0
             }
 
-            _ = try options.requiredTransformName()
+            let transformName = try options.requiredTransformName()
+            guard let transform = TransformRegistry.resolve(transformName) else {
+                throw GenerationError.unknownTransform(transformName)
+            }
 
             let input = try environment.inputSource(options.readsClipboard).readText()
             _ = input
+            _ = transform
             return 0
         } catch let error as GenerationError {
             environment.writeStderr("\(error.message)\n")

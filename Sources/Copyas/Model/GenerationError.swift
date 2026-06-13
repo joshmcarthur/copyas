@@ -3,10 +3,11 @@ import Foundation
 enum GenerationError: Error, Equatable, Sendable {
     case missingTransform
     case noInput
+    case unknownTransform(String)
 
     var exitCode: Int32 {
         switch self {
-        case .missingTransform:
+        case .missingTransform, .unknownTransform:
             64
         case .noInput:
             6
@@ -19,6 +20,8 @@ enum GenerationError: Error, Equatable, Sendable {
             "error: missing required transform"
         case .noInput:
             "error: no input text"
+        case let .unknownTransform(name):
+            "error: unknown transform \"\(name)\""
         }
     }
 }
