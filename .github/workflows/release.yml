@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and publish release
+    runs-on: macos-26
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test
+        run: swift test
+
+      - name: Build release binary
+        run: swift build -c release -Xswiftc -warnings-as-errors
+
+      - name: Package binary
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          cp .build/release/copyas "dist/copyas"
+          chmod +x "dist/copyas"
+          (
+            cd dist
+            zip -X "../copyas-${VERSION}-macos-arm64.zip" copyas
+          )
+          shasum -a 256 "copyas-${VERSION}-macos-arm64.zip" > "copyas-${VERSION}-macos-arm64.zip.sha256"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            copyas-*-macos-arm64.zip
+            copyas-*-macos-arm64.zip.sha256
+          generate_release_notes: true
