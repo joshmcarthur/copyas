@@ -5,13 +5,14 @@ on:
     tags:
       - "v*"
 
-permissions:
-  contents: write
+permissions: {}
 
 jobs:
   release:
     name: Build and publish release
     runs-on: macos-26
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -36,9 +37,11 @@ jobs:
           shasum -a 256 "copyas-${VERSION}-macos-arm64.zip" > "copyas-${VERSION}-macos-arm64.zip.sha256"
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            copyas-*-macos-arm64.zip
-            copyas-*-macos-arm64.zip.sha256
-          generate_release_notes: true
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "${GITHUB_REF_NAME}" \
+            --generate-notes \
+            "copyas-${VERSION}-macos-arm64.zip" \
+            "copyas-${VERSION}-macos-arm64.zip.sha256"
+        env:
+          GH_TOKEN: ${{ github.token }}

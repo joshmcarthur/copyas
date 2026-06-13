@@ -6,6 +6,8 @@ on:
     branches:
       - main
 
+permissions: {}
+
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -14,6 +16,8 @@ jobs:
   test:
     name: Test and coverage
     runs-on: macos-26
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
