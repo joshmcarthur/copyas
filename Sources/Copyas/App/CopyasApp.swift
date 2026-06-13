@@ -18,6 +18,7 @@ public enum CopyasApp {
             }
 
             let input = try environment.inputSource(options.readsClipboard).readText()
+            try InputSuitability.validate(input)
             try environment.modelClient.checkAvailability()
             let output = try await environment.modelClient.generate(
                 transform: transform,

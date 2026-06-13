@@ -113,6 +113,28 @@ final class CopyasAppTests: XCTestCase {
         XCTAssertTrue(stdout.value.isEmpty)
     }
 
+    func testUnsuitableInputWritesStderrAndExits7() async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let hashInput = InputSource(
+            readsClipboard: false,
+            readStdin: { Data("23af655ba1dd\n".utf8) },
+            readClipboard: { nil }
+        )
+        let environment = makeEnvironment(
+            arguments: ["-t", "summary"],
+            input: hashInput,
+            stdout: stdout,
+            stderr: stderr
+        )
+
+        let exitCode = await CopyasApp.run(environment: environment)
+
+        XCTAssertEqual(exitCode, 7)
+        XCTAssertEqual(stderr.value, "error: input does not contain enough meaningful text to transform\n")
+        XCTAssertTrue(stdout.value.isEmpty)
+    }
+
     func testSuccessfulRunWritesGeneratedOutputAndNoStderr() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()

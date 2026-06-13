@@ -26,11 +26,9 @@ public struct LiveModelClient: ModelClient {
                 instructions: transform.instructions
             )
             let response = try await session.respond(to: input)
-            return response.content
-        } catch let error as GenerationError {
-            throw error
+            return try TransformOutput.parse(response.content)
         } catch {
-            throw GenerationError.generationFailed(String(describing: error))
+            throw FoundationModelsErrorMapper.map(error)
         }
     }
 }

@@ -11,6 +11,7 @@ final class TransformRegistryTests: XCTestCase {
 
     func testExposesSpecAlignedInstructions() {
         XCTAssertTrue(Transform.summary.instructions.contains("Use `-` for bullets"))
+        XCTAssertTrue(Transform.summary.instructions.contains("__COPYAS_REFUSE__"))
         XCTAssertTrue(Transform.markdown.instructions.contains("Do not wrap the entire response"))
         XCTAssertTrue(Transform.pirate.instructions.contains("Keep the original meaning"))
     }
