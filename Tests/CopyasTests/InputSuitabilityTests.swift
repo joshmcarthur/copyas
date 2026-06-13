@@ -15,7 +15,8 @@ final class InputSuitabilityTests: XCTestCase {
     }
 
     func testAcceptsMeaningfulText() throws {
-        XCTAssertNoThrow(try InputSuitability.validate("Meeting notes from Tuesday about the project timeline."))
+        XCTAssertNoThrow(try InputSuitability
+            .validate("Meeting notes from Tuesday about the project timeline."))
         XCTAssertNoThrow(try InputSuitability.validate("Hello world"))
     }
 

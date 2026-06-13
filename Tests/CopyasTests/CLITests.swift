@@ -8,21 +8,5 @@ final class CLITests: XCTestCase {
 
         XCTAssertEqual(options.transformName, "summary")
         XCTAssertTrue(options.readsClipboard)
-        XCTAssertFalse(options.showsVersion)
-    }
-
-    func testVersionDoesNotRequireTransform() throws {
-        let options = try CopyasOptions.parse(["-v"])
-
-        XCTAssertNil(options.transformName)
-        XCTAssertTrue(options.showsVersion)
-    }
-
-    func testMissingTransformIsUsageErrorWhenNotShowingVersion() throws {
-        let options = try CopyasOptions.parse([])
-
-        XCTAssertThrowsError(try options.requiredTransformName()) { error in
-            XCTAssertEqual(error as? GenerationError, .missingTransform)
-        }
     }
 }

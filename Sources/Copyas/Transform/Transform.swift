@@ -5,6 +5,10 @@ public enum Transform: String, CaseIterable, Equatable, Sendable {
     case markdown
     case pirate
 
+    static func named(_ name: String) -> Transform? {
+        Transform(rawValue: name.lowercased())
+    }
+
     private static let refusalInstructions = """
     Only transform meaningful natural language from the input. If the input cannot be handled—such as bare IDs, hashes, codes, random tokens, numbers-only strings, or text too fragmentary to transform—do not guess or invent content. Output exactly this single line and nothing else:
     __COPYAS_REFUSE__

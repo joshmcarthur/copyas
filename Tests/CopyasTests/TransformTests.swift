@@ -1,12 +1,12 @@
 @testable import Copyas
 import XCTest
 
-final class TransformRegistryTests: XCTestCase {
+final class TransformTests: XCTestCase {
     func testResolvesTransformsCaseInsensitively() {
-        XCTAssertEqual(TransformRegistry.resolve("summary"), .summary)
-        XCTAssertEqual(TransformRegistry.resolve("SUMMARY"), .summary)
-        XCTAssertEqual(TransformRegistry.resolve("Markdown"), .markdown)
-        XCTAssertEqual(TransformRegistry.resolve("pirate"), .pirate)
+        XCTAssertEqual(Transform.named("summary"), .summary)
+        XCTAssertEqual(Transform.named("SUMMARY"), .summary)
+        XCTAssertEqual(Transform.named("Markdown"), .markdown)
+        XCTAssertEqual(Transform.named("pirate"), .pirate)
     }
 
     func testExposesSpecAlignedInstructions() {
@@ -17,6 +17,6 @@ final class TransformRegistryTests: XCTestCase {
     }
 
     func testUnknownTransformReturnsNil() {
-        XCTAssertNil(TransformRegistry.resolve("lolcat"))
+        XCTAssertNil(Transform.named("lolcat"))
     }
 }

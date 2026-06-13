@@ -1,5 +1,5 @@
-import Foundation
 @testable import Copyas
+import Foundation
 import XCTest
 
 final class FoundationModelsErrorMapperTests: XCTestCase {
@@ -67,7 +67,8 @@ final class FoundationModelsErrorMapperTests: XCTestCase {
 
     func testModelAssetsUnavailableExitCodeAndMessage() {
         XCTAssertEqual(GenerationError.modelAssetsUnavailable.exitCode, 4)
-        XCTAssertTrue(GenerationError.modelAssetsUnavailable.message.contains("model assets are unavailable"))
+        XCTAssertTrue(GenerationError.modelAssetsUnavailable.message
+            .contains("model assets are unavailable"))
     }
 
     private func nestedError(

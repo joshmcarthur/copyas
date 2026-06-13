@@ -30,9 +30,9 @@ final class CopyasAppTests: XCTestCase {
     ) -> AppEnvironment {
         AppEnvironment(
             arguments: arguments,
-            inputSource: { _ in
+            makeInputSource: { readsClipboard in
                 input ?? InputSource(
-                    readsClipboard: false,
+                    readsClipboard: readsClipboard,
                     readStdin: { Data("hello\n".utf8) },
                     readClipboard: { nil }
                 )
@@ -55,7 +55,7 @@ final class CopyasAppTests: XCTestCase {
         let exitCode = await CopyasApp.run(environment: environment)
 
         XCTAssertEqual(exitCode, 0)
-        XCTAssertEqual(stdout.value, "copyas 0.1.0\n")
+        XCTAssertEqual(stdout.value, "\(CopyasMetadata.version)\n")
         XCTAssertTrue(stderr.value.isEmpty)
     }
 
@@ -131,7 +131,10 @@ final class CopyasAppTests: XCTestCase {
         let exitCode = await CopyasApp.run(environment: environment)
 
         XCTAssertEqual(exitCode, 7)
-        XCTAssertEqual(stderr.value, "error: input does not contain enough meaningful text to transform\n")
+        XCTAssertEqual(
+            stderr.value,
+            "error: input does not contain enough meaningful text to transform\n"
+        )
         XCTAssertTrue(stdout.value.isEmpty)
     }
 
@@ -190,9 +193,9 @@ final class CopyasAppTests: XCTestCase {
         let stderr = OutputCapture()
         let failingEnvironment = AppEnvironment(
             arguments: ["-t", "summary"],
-            inputSource: { _ in
+            makeInputSource: { readsClipboard in
                 InputSource(
-                    readsClipboard: false,
+                    readsClipboard: readsClipboard,
                     readStdin: { Data("hello\n".utf8) },
                     readClipboard: { nil }
                 )
