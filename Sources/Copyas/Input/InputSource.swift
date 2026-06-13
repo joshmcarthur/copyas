@@ -2,23 +2,23 @@ import AppKit
 import Foundation
 
 public struct InputSource: Sendable {
-    var readsClipboard: Bool
+    var readsStdin: Bool
     var readStdin: @Sendable () throws -> Data
     var readClipboard: @Sendable () -> String?
 
-    public static func live(readsClipboard: Bool) -> InputSource {
+    public static func live(readsStdin: Bool) -> InputSource {
         InputSource(
-            readsClipboard: readsClipboard,
+            readsStdin: readsStdin,
             readStdin: { FileHandle.standardInput.readDataToEndOfFile() },
             readClipboard: { NSPasteboard.general.string(forType: .string) }
         )
     }
 
     func readText() throws -> String {
-        let rawText: String = if readsClipboard {
-            readClipboard() ?? ""
-        } else {
+        let rawText: String = if readsStdin {
             try String(decoding: readStdin(), as: UTF8.self)
+        } else {
+            readClipboard() ?? ""
         }
 
         let trimmed = rawText.trimmingTrailingWhitespaceAndNewlines()

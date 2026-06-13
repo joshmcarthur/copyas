@@ -8,21 +8,18 @@ public enum CopyasApp {
             let command = try CopyasCommand.parse(arguments)
             let options = command.options
 
-            guard let transformName = options.transformName, !transformName.isEmpty else {
-                throw GenerationError.missingTransform
-            }
-            guard let transform = Transform.named(transformName) else {
-                throw GenerationError.unknownTransform(transformName)
+            guard let transform = Transform.named(options.transform) else {
+                throw GenerationError.unknownTransform(options.transform)
             }
 
-            let input = try environment.makeInputSource(options.readsClipboard).readText()
+            let input = try environment.makeInputSource(options.readsStdin).readText()
             try InputSuitability.validate(input)
             try environment.modelClient.checkAvailability()
             let output = try await environment.modelClient.generate(
                 transform: transform,
                 input: input
             )
-            writeln(output, to: .stdout, via: environment)
+            try environment.makeOutputSink(options.writesClipboard).write(output)
             return 0
         } catch {
             return handleExit(error, environment: environment)

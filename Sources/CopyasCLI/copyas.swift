@@ -5,13 +5,18 @@ import Foundation
 @main
 struct CopyasCLI {
     nonisolated static func main() async {
+        let writeStdout: @Sendable (String) -> Void = { text in
+            FileHandle.standardOutput.write(Data(text.utf8))
+        }
+
         let environment = AppEnvironment(
             arguments: Array(CommandLine.arguments.dropFirst()),
             makeInputSource: InputSource.live,
-            modelClient: LiveModelClient(),
-            writeStdout: { text in
-                FileHandle.standardOutput.write(Data(text.utf8))
+            makeOutputSink: { writesClipboard in
+                OutputSink.live(writesClipboard: writesClipboard, writeStdout: writeStdout)
             },
+            modelClient: LiveModelClient(),
+            writeStdout: writeStdout,
             writeStderr: { text in
                 FileHandle.standardError.write(Data(text.utf8))
             }

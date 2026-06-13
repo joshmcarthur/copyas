@@ -3,6 +3,7 @@ import Foundation
 public struct AppEnvironment: Sendable {
     var arguments: [String]
     var makeInputSource: @Sendable (Bool) -> InputSource
+    var makeOutputSink: @Sendable (Bool) -> OutputSink
     var modelClient: any ModelClient
     var writeStdout: @Sendable (String) -> Void
     var writeStderr: @Sendable (String) -> Void
@@ -10,12 +11,14 @@ public struct AppEnvironment: Sendable {
     public init(
         arguments: [String],
         makeInputSource: @escaping @Sendable (Bool) -> InputSource,
+        makeOutputSink: @escaping @Sendable (Bool) -> OutputSink,
         modelClient: any ModelClient,
         writeStdout: @escaping @Sendable (String) -> Void,
         writeStderr: @escaping @Sendable (String) -> Void
     ) {
         self.arguments = arguments
         self.makeInputSource = makeInputSource
+        self.makeOutputSink = makeOutputSink
         self.modelClient = modelClient
         self.writeStdout = writeStdout
         self.writeStderr = writeStderr

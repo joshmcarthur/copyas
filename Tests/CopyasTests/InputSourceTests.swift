@@ -5,7 +5,7 @@ import XCTest
 final class InputSourceTests: XCTestCase {
     func testStdinInputPreservesLeadingWhitespaceAndTrimsTrailingWhitespace() throws {
         let source = InputSource(
-            readsClipboard: false,
+            readsStdin: true,
             readStdin: { Data("  hello\n\n".utf8) },
             readClipboard: { nil }
         )
@@ -13,9 +13,9 @@ final class InputSourceTests: XCTestCase {
         XCTAssertEqual(try source.readText(), "  hello")
     }
 
-    func testClipboardWinsWhenFlagIsSet() throws {
+    func testClipboardUsedByDefault() throws {
         let source = InputSource(
-            readsClipboard: true,
+            readsStdin: false,
             readStdin: { Data("stdin".utf8) },
             readClipboard: { "clipboard\n" }
         )
@@ -25,7 +25,7 @@ final class InputSourceTests: XCTestCase {
 
     func testEmptyAfterTrailingTrimThrowsNoInput() {
         let source = InputSource(
-            readsClipboard: false,
+            readsStdin: true,
             readStdin: { Data("\n\t ".utf8) },
             readClipboard: { nil }
         )

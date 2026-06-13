@@ -1,10 +1,10 @@
 # copyas
 
-A macOS CLI that reads text from stdin or the clipboard, applies a named transform using **Apple Foundation Models**, and writes the result to stdout.
+A macOS CLI that transforms clipboard text using **Apple Foundation Models** — copy as Markdown, summary, pirate speak, and more.
 
 ```bash
-echo "Long meeting notes..." | copyas -t summary
-copyas -t markdown -c | pbcopy
+copyas markdown -w
+copyas summary --stdin < report.txt
 ```
 
 ---
@@ -36,14 +36,15 @@ ln -sf "$(pwd)/.build/release/copyas" /usr/local/bin/copyas
 ### Usage
 
 ```text
-copyas --transform NAME [--clipboard] [--help] [--version]
-copyas -t NAME [-c] [-h] [-v]
+copyas TRANSFORM [--stdin] [--write] [--help] [--version]
+copyas TRANSFORM [--stdin] [-w] [-h] [-v]
 ```
 
-| Flag | Description |
-|------|-------------|
-| `-t`, `--transform` | Transform to apply: `summary`, `markdown`, `pirate` |
-| `-c`, `--clipboard` | Read from clipboard instead of stdin |
+| Argument / flag | Description |
+|-----------------|-------------|
+| `TRANSFORM` | Transform to apply: `summary`, `markdown`, `pirate` |
+| `--stdin` | Read from stdin instead of clipboard (for pipes and file redirection) |
+| `-w`, `--write` | Write result to clipboard instead of stdout |
 | `-h`, `--help` | Show usage |
 | `-v`, `--version` | Show version |
 
@@ -58,14 +59,17 @@ copyas -t NAME [-c] [-h] [-v]
 ### Examples
 
 ```bash
-# Summarise a file
-copyas -t summary < report.txt
+# Transform clipboard text and write back to clipboard
+copyas markdown -w
 
-# Markdown from clipboard, copy result back
-copyas -t markdown -c | pbcopy
+# Preview clipboard transform on stdout
+copyas markdown
+
+# Summarise a file
+copyas summary --stdin < report.txt
 
 # Pipe through other tools
-cat draft.txt | copyas -t markdown | tee formatted.md
+cat draft.txt | copyas markdown --stdin | tee formatted.md
 ```
 
 ### Exit codes
@@ -73,7 +77,7 @@ cat draft.txt | copyas -t markdown | tee formatted.md
 | Code | Meaning |
 |------|---------|
 | `0` | Success |
-| `1` | Generation or internal error |
+| `1` | Generation, clipboard write, or internal error |
 | `2` | Device not eligible for Apple Intelligence |
 | `3` | Apple Intelligence not enabled |
 | `4` | Model not ready |
@@ -81,7 +85,7 @@ cat draft.txt | copyas -t markdown | tee formatted.md
 | `6` | No input text |
 | `64` | Invalid usage (missing/unknown transform) |
 
-Errors are printed to **stderr**; transformed text goes to **stdout** only.
+Errors are printed to **stderr**. Transformed text goes to **stdout** by default, or to the clipboard with `-w` (stdout stays silent on success).
 
 ### Formatting
 
@@ -104,7 +108,7 @@ swift build -Xswiftc -warnings-as-errors
 2. Make focused changes aligned with one logical commit
 3. Run `swiftformat .` and `swift build`
 4. Review your diff before committing
-5. Use imperative, semantic commit messages (e.g. `feat(cli): add clipboard input`)
+5. Use imperative, semantic commit messages (e.g. `feat(cli): add clipboard-first CLI`)
 
 ---
 

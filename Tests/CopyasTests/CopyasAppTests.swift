@@ -24,21 +24,31 @@ final class CopyasAppTests: XCTestCase {
     private func makeEnvironment(
         arguments: [String],
         input: InputSource? = nil,
+        output: OutputSink? = nil,
         modelClient: FakeModelClient = FakeModelClient(),
         stdout: OutputCapture,
         stderr: OutputCapture
     ) -> AppEnvironment {
-        AppEnvironment(
+        let writeStdout: @Sendable (String) -> Void = { stdout.value += $0 }
+
+        return AppEnvironment(
             arguments: arguments,
-            makeInputSource: { readsClipboard in
+            makeInputSource: { readsStdin in
                 input ?? InputSource(
-                    readsClipboard: readsClipboard,
+                    readsStdin: readsStdin,
                     readStdin: { Data("hello\n".utf8) },
-                    readClipboard: { nil }
+                    readClipboard: { "hello" }
+                )
+            },
+            makeOutputSink: { writesClipboard in
+                output ?? OutputSink(
+                    writesClipboard: writesClipboard,
+                    writeStdout: writeStdout,
+                    writeClipboard: { _ in true }
                 )
             },
             modelClient: modelClient,
-            writeStdout: { stdout.value += $0 },
+            writeStdout: writeStdout,
             writeStderr: { stderr.value += $0 }
         )
     }
@@ -71,7 +81,7 @@ final class CopyasAppTests: XCTestCase {
         let exitCode = await CopyasApp.run(environment: environment)
 
         XCTAssertEqual(exitCode, 64)
-        XCTAssertEqual(stderr.value, "error: missing required transform\n")
+        XCTAssertTrue(stderr.value.lowercased().contains("transform"))
         XCTAssertTrue(stdout.value.isEmpty)
     }
 
@@ -79,7 +89,7 @@ final class CopyasAppTests: XCTestCase {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
         let environment = makeEnvironment(
-            arguments: ["-t", "lolcat"],
+            arguments: ["lolcat"],
             stdout: stdout,
             stderr: stderr
         )
@@ -95,12 +105,12 @@ final class CopyasAppTests: XCTestCase {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
         let emptyInput = InputSource(
-            readsClipboard: false,
+            readsStdin: true,
             readStdin: { Data("\n".utf8) },
             readClipboard: { nil }
         )
         let environment = makeEnvironment(
-            arguments: ["-t", "summary"],
+            arguments: ["summary", "--stdin"],
             input: emptyInput,
             stdout: stdout,
             stderr: stderr
@@ -117,12 +127,12 @@ final class CopyasAppTests: XCTestCase {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
         let hashInput = InputSource(
-            readsClipboard: false,
+            readsStdin: true,
             readStdin: { Data("23af655ba1dd\n".utf8) },
             readClipboard: { nil }
         )
         let environment = makeEnvironment(
-            arguments: ["-t", "summary"],
+            arguments: ["summary", "--stdin"],
             input: hashInput,
             stdout: stdout,
             stderr: stderr
@@ -142,7 +152,7 @@ final class CopyasAppTests: XCTestCase {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
         let environment = makeEnvironment(
-            arguments: ["-t", "summary"],
+            arguments: ["summary", "--stdin"],
             modelClient: FakeModelClient(output: "generated output"),
             stdout: stdout,
             stderr: stderr
@@ -155,11 +165,39 @@ final class CopyasAppTests: XCTestCase {
         XCTAssertTrue(stderr.value.isEmpty)
     }
 
+    func testWriteFlagWritesClipboardAndLeavesStdoutSilent() async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let clipboard = OutputCapture()
+        let output = OutputSink(
+            writesClipboard: true,
+            writeStdout: { stdout.value += $0 },
+            writeClipboard: { text in
+                clipboard.value = text
+                return true
+            }
+        )
+        let environment = makeEnvironment(
+            arguments: ["summary", "-w"],
+            output: output,
+            modelClient: FakeModelClient(output: "generated output"),
+            stdout: stdout,
+            stderr: stderr
+        )
+
+        let exitCode = await CopyasApp.run(environment: environment)
+
+        XCTAssertEqual(exitCode, 0)
+        XCTAssertEqual(clipboard.value, "generated output")
+        XCTAssertTrue(stdout.value.isEmpty)
+        XCTAssertTrue(stderr.value.isEmpty)
+    }
+
     func testOutputAlreadyEndingWithNewlineIsNotDuplicated() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
         let environment = makeEnvironment(
-            arguments: ["-t", "summary"],
+            arguments: ["summary", "--stdin"],
             modelClient: FakeModelClient(output: "generated output\n"),
             stdout: stdout,
             stderr: stderr
@@ -191,17 +229,25 @@ final class CopyasAppTests: XCTestCase {
     func testGenerationFailedExits1() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
+        let writeStdout: @Sendable (String) -> Void = { stdout.value += $0 }
         let failingEnvironment = AppEnvironment(
-            arguments: ["-t", "summary"],
-            makeInputSource: { readsClipboard in
+            arguments: ["summary", "--stdin"],
+            makeInputSource: { readsStdin in
                 InputSource(
-                    readsClipboard: readsClipboard,
+                    readsStdin: readsStdin,
                     readStdin: { Data("hello\n".utf8) },
-                    readClipboard: { nil }
+                    readClipboard: { "hello" }
+                )
+            },
+            makeOutputSink: { writesClipboard in
+                OutputSink(
+                    writesClipboard: writesClipboard,
+                    writeStdout: writeStdout,
+                    writeClipboard: { _ in true }
                 )
             },
             modelClient: FailingModelClient(),
-            writeStdout: { stdout.value += $0 },
+            writeStdout: writeStdout,
             writeStderr: { stderr.value += $0 }
         )
 
@@ -232,7 +278,7 @@ final class CopyasAppTests: XCTestCase {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
         let environment = makeEnvironment(
-            arguments: ["-t", "summary"],
+            arguments: ["summary", "--stdin"],
             modelClient: FakeModelClient(availabilityError: error),
             stdout: stdout,
             stderr: stderr

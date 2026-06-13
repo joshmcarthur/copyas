@@ -5,6 +5,7 @@ enum GenerationError: Error, Equatable {
     case noInput
     case unsuitableInput
     case unknownTransform(String)
+    case clipboardWriteFailed
     case deviceNotEligible
     case appleIntelligenceNotEnabled
     case modelNotReady
@@ -29,7 +30,7 @@ enum GenerationError: Error, Equatable {
             4
         case .modelUnavailable:
             5
-        case .contentBlocked, .generationFailed:
+        case .contentBlocked, .generationFailed, .clipboardWriteFailed:
             1
         }
     }
@@ -44,6 +45,8 @@ enum GenerationError: Error, Equatable {
             "error: input does not contain enough meaningful text to transform"
         case let .unknownTransform(name):
             "error: unknown transform \"\(name)\""
+        case .clipboardWriteFailed:
+            "error: failed to write to clipboard"
         case .deviceNotEligible:
             "error: device does not support Apple Intelligence"
         case .appleIntelligenceNotEnabled:

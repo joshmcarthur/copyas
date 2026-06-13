@@ -4,7 +4,7 @@
 **Version:** 0.1.0  
 **Last updated:** 2026-06-13
 
-This document is the source of truth for implementing **copyas**: a macOS CLI that reads text, applies a named transform via Apple Foundation Models, and writes the result to stdout. Humans and coding agents MUST follow this spec when building or extending the project.
+This document is the source of truth for implementing **copyas**: a macOS CLI that reads text from the clipboard (or stdin), applies a named transform via Apple Foundation Models, and writes the result to stdout or back to the clipboard. Humans and coding agents MUST follow this spec when building or extending the project.
 
 ---
 
@@ -26,9 +26,9 @@ It is designed for shell pipelines, clipboard workflows, and automation — not 
 
 | ID | Goal |
 |----|------|
-| G1 | Accept text from **stdin** or **clipboard** (`--clipboard` / `-c`) |
-| G2 | Apply a **named transform** selected via CLI flag |
-| G3 | Write transformed text to **stdout** only (machine-readable default) |
+| G1 | Accept text from **clipboard** by default, or **stdin** with `--stdin` |
+| G2 | Apply a **named transform** via required positional argument |
+| G3 | Write transformed text to **stdout** by default, or back to the clipboard with `--write` / `-w` |
 | G4 | Use **Apple Foundation Models** (`FoundationModels` framework) for generation |
 | G5 | Fail clearly on stderr with non-zero exit codes |
 | G6 | Ship as a single executable built with **Swift Package Manager** |
@@ -40,7 +40,7 @@ It is designed for shell pipelines, clipboard workflows, and automation — not 
 - Interactive TUI or GUI
 - Custom / user-defined transforms (future work)
 - Network calls or third-party LLM APIs (v0.1 uses on-device model only)
-- Writing back to clipboard by default (stdout is sufficient for piping)
+- Writing to both stdout and clipboard simultaneously
 
 ---
 
@@ -80,45 +80,49 @@ General generation failure MUST exit `1` with a concise stderr message.
 ### 4.1 Invocation
 
 ```text
-copyas [--transform NAME | -t NAME] [--clipboard | -c] [--help | -h] [--version | -v]
+copyas TRANSFORM [--stdin] [--write | -w] [--help | -h] [--version | -v]
 ```
 
-| Flag | Short | Required | Description |
-|------|-------|----------|-------------|
-| `--transform` | `-t` | **Yes** | Transform to apply (see §5) |
-| `--clipboard` | `-c` | No | Read input from general pasteboard instead of stdin |
+| Argument / flag | Short | Required | Description |
+|-----------------|-------|----------|-------------|
+| `TRANSFORM` | — | **Yes** | Positional transform name (see §5) |
+| `--stdin` | — | No | Read input from stdin instead of clipboard |
+| `--write` | `-w` | No | Write result to clipboard instead of stdout |
 | `--help` | `-h` | No | Print usage; exit `0` |
 | `--version` | `-v` | No | Print name and version; exit `0` |
 
 ### 4.2 Input precedence
 
-1. If `--clipboard` / `-c` is set → read string from `NSPasteboard.general.string(forType: .string)`.
-2. Else → read **all** of stdin until EOF (UTF-8).
-
-If both stdin and clipboard could apply, **clipboard wins** when `-c` is passed.
+1. If `--stdin` is set → read **all** of stdin until EOF (UTF-8).
+2. Else → read string from `NSPasteboard.general.string(forType: .string)`.
 
 Trim trailing whitespace from input; do **not** trim leading whitespace (code blocks depend on it).
 
 ### 4.3 Output
 
-- Transformed text → **stdout** (UTF-8, trailing newline optional but preferred for POSIX tools).
+- If `--write` / `-w` is set → write transformed text to the general pasteboard; **stdout stays silent** on success.
+- Else → transformed text → **stdout** (UTF-8, trailing newline optional but preferred for POSIX tools).
 - Errors, warnings, progress → **stderr** only.
 - No ANSI colour in v0.1.
+- Clipboard write failure MUST exit `1` with `error: failed to write to clipboard`.
 
 ### 4.4 Examples (acceptance scenarios)
 
 ```bash
-# Summarise a file
-copyas -t summary < notes.txt
+# Transform clipboard text and write back to clipboard
+copyas markdown -w
 
-# Convert clipboard selection to Markdown
-copyas -t markdown -c | pbcopy
+# Preview clipboard transform on stdout
+copyas markdown
+
+# Summarise a file
+copyas summary --stdin < notes.txt
 
 # Pirate speak via pipe
-echo "Hello, world!" | copyas -t pirate
+echo "Hello, world!" | copyas pirate --stdin
 
 # Unknown transform
-copyas -t lolcat
+copyas lolcat
 # → stderr: error: unknown transform "lolcat"; exit 64
 ```
 
@@ -179,18 +183,18 @@ enum Transform: String, CaseIterable {
 }
 ```
 
-`copyas -t summary` and `copyas -t SUMMARY` SHOULD accept case-insensitive names (normalise to lowercase).
+`copyas summary` and `copyas SUMMARY` SHOULD accept case-insensitive names (normalise to lowercase).
 
 ---
 
 ## 6. Architecture
 
 ```text
-┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌────────┐
-│ InputSource │ ──► │ Transform    │ ──► │ LanguageModel   │ ──► │ stdout │
-│ stdin /     │     │ (instructions│     │ Session         │     │        │
-│ pasteboard  │     │  + prompt)   │     │ (FoundationModels)     │        │
-└─────────────┘     └──────────────┘     └─────────────────┘     └────────┘
+┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌─────────────┐
+│ InputSource │ ──► │ Transform    │ ──► │ LanguageModel   │ ──► │ OutputSink  │
+│ clipboard / │     │ (instructions│     │ Session         │     │ stdout /    │
+│ stdin       │     │  + prompt)   │     │ (FoundationModels)     │ clipboard   │
+└─────────────┘     └──────────────┘     └─────────────────┘     └─────────────┘
        ▲                                         │
        │              ┌──────────────┐           │
        └──────────────│ CLI (Argument│◄──────────┘
@@ -205,7 +209,8 @@ enum Transform: String, CaseIterable {
 | `Package.swift` | Executable target `copyas`, platforms, dependencies |
 | `Sources/copyas/copyas.swift` | `@main` entry, orchestration |
 | `Sources/copyas/CLI/Command.swift` | Argument parsing (`ArgumentParser` recommended) |
-| `Sources/copyas/Input/InputSource.swift` | stdin vs clipboard |
+| `Sources/copyas/Input/InputSource.swift` | clipboard vs stdin |
+| `Sources/copyas/Output/OutputSink.swift` | stdout vs clipboard |
 | `Sources/copyas/Transform/Transform.swift` | Transform enum + metadata |
 | `Sources/copyas/Transform/TransformRegistry.swift` | Lookup + validation |
 | `Sources/copyas/Model/ModelClient.swift` | Availability check + `LanguageModelSession` |
@@ -287,10 +292,10 @@ Before marking v0.1 complete, verify:
 - [ ] `swift build -c release` produces `copyas` binary
 - [ ] `copyas -h` prints usage
 - [ ] `copyas -v` prints version
-- [ ] `copyas -t summary` summarises stdin text
-- [ ] `copyas -t markdown -c` reads clipboard (manual test on AI-enabled Mac)
-- [ ] `copyas -t pirate` rewrites piped text
-- [ ] Missing `-t` → exit `64`
+- [ ] `copyas summary --stdin` summarises stdin text
+- [ ] `copyas markdown -w` reads clipboard and writes result back (manual test on AI-enabled Mac)
+- [ ] `copyas pirate --stdin` rewrites piped text
+- [ ] Missing `TRANSFORM` → exit `64`
 - [ ] Unknown transform → exit `64`
 - [ ] Empty input → exit `6`
 - [ ] stderr stays silent on success (no progress spam)
@@ -303,7 +308,6 @@ Document for planners; do not implement unless requested:
 
 - Transforms: `grammar`, `eli5`, `tweet`, `json` (structured via `@Generable`)
 - `--model` flag for `SystemLanguageModel.UseCase` variants
-- `--output clipboard` to write result to pasteboard
 - Shell completions via ArgumentParser
 - Unit tests with mocked `ModelClient`
 - Homebrew formula
