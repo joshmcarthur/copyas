@@ -1,0 +1,187 @@
+# copyas
+
+A macOS CLI that reads text from stdin or the clipboard, applies a named transform using **Apple Foundation Models**, and writes the result to stdout.
+
+```bash
+echo "Long meeting notes..." | copyas -t summary
+copyas -t markdown -c | pbcopy
+```
+
+---
+
+## Requirements
+
+- macOS 26+ (Apple Intelligence–capable Mac)
+- Apple Intelligence enabled in System Settings
+- Xcode 26+ or Swift 6 toolchain
+
+---
+
+## For humans
+
+### Install (development)
+
+```bash
+git clone https://github.com/joshmcarthur/copyas.git
+cd copyas
+swift build -c release
+```
+
+The binary is at `.build/release/copyas`. Add it to your `PATH` or symlink it:
+
+```bash
+ln -sf "$(pwd)/.build/release/copyas" /usr/local/bin/copyas
+```
+
+### Usage
+
+```text
+copyas --transform NAME [--clipboard] [--help] [--version]
+copyas -t NAME [-c] [-h] [-v]
+```
+
+| Flag | Description |
+|------|-------------|
+| `-t`, `--transform` | Transform to apply: `summary`, `markdown`, `pirate` |
+| `-c`, `--clipboard` | Read from clipboard instead of stdin |
+| `-h`, `--help` | Show usage |
+| `-v`, `--version` | Show version |
+
+### Transforms
+
+| Name | What it does |
+|------|----------------|
+| `summary` | Bullet-point summary of the input |
+| `markdown` | Converts text into structured Markdown |
+| `pirate` | Rewrites text in pirate speak |
+
+### Examples
+
+```bash
+# Summarise a file
+copyas -t summary < report.txt
+
+# Markdown from clipboard, copy result back
+copyas -t markdown -c | pbcopy
+
+# Pipe through other tools
+cat draft.txt | copyas -t markdown | tee formatted.md
+```
+
+### Exit codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Success |
+| `1` | Generation or internal error |
+| `2` | Device not eligible for Apple Intelligence |
+| `3` | Apple Intelligence not enabled |
+| `4` | Model not ready |
+| `5` | Model unavailable (other) |
+| `6` | No input text |
+| `64` | Invalid usage (missing/unknown transform) |
+
+Errors are printed to **stderr**; transformed text goes to **stdout** only.
+
+### Formatting
+
+This project uses [SwiftFormat](https://github.com/nicklockwood/SwiftFormat). Install and run before committing:
+
+```bash
+brew install swiftformat
+swiftformat .
+```
+
+Build with warnings as errors during development:
+
+```bash
+swift build -Xswiftc -warnings-as-errors
+```
+
+### Contributing
+
+1. Read the executable spec: [`docs/SPEC.md`](docs/SPEC.md)
+2. Make focused changes aligned with one logical commit
+3. Run `swiftformat .` and `swift build`
+4. Review your diff before committing
+5. Use imperative, semantic commit messages (e.g. `feat(cli): add clipboard input`)
+
+---
+
+## For agents
+
+This section is for coding agents (Cursor, Claude Code, etc.) implementing or extending **copyas**.
+
+### Source of truth
+
+**Read and follow [`docs/SPEC.md`](docs/SPEC.md) completely.** It defines CLI behaviour, transforms, architecture, exit codes, and the implementation commit plan. If README and SPEC disagree, SPEC wins.
+
+### Workflow
+
+1. **Plan from the spec** — Use §7 (implementation plan) as the default commit sequence.
+2. **One logical change per commit** — Each commit should be reviewable on its own (e.g. scaffold, CLI parsing, input layer, transforms, model integration, wiring).
+3. **Review before commit** — Run `git diff` (staged and unstaged). Confirm the diff matches intent and does not include unrelated edits.
+4. **Lint and format proactively** — Before every commit:
+   ```bash
+   swiftformat .
+   swift build -Xswiftc -warnings-as-errors
+   ```
+5. **Do not commit unless asked** — The user may request commits explicitly; otherwise leave changes uncommitted or ask.
+6. **Minimal scope** — Implement only what the spec and user request. No extra transforms, flags, or dependencies without approval.
+
+### Implementation hints
+
+| Area | Guidance |
+|------|----------|
+| Package layout | SwiftPM executable target; see SPEC §6.1 |
+| CLI | Prefer [swift-argument-parser](https://github.com/apple/swift-argument-parser) |
+| Model | `FoundationModels`: `SystemLanguageModel.default`, `LanguageModelSession` |
+| Clipboard | `NSPasteboard.general` via AppKit (macOS only) |
+| Transforms | Enum + instruction strings; case-insensitive lookup |
+| Testing | Manual verification on AI-enabled Mac; mock `ModelClient` only if tests are requested |
+
+### Commit message format
+
+Use [Conventional Commits](https://www.conventionalcommits.org/) style:
+
+```text
+<type>(<scope>): <short imperative summary>
+
+Optional body explaining why, not what.
+```
+
+Types: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`.
+
+Examples:
+
+- `chore: initialise Swift package scaffold`
+- `feat(input): read text from stdin and clipboard`
+- `feat(model): integrate Foundation Models session`
+
+### When stuck
+
+- Foundation Models API changed → consult Apple’s current docs; preserve CLI contract in SPEC §4–§5.
+- Build fails on non-Apple-Intelligence hardware → expected; verify logic structurally; note in PR that runtime tests need an eligible Mac.
+- User asks for a new transform → add to SPEC §5 first, then implement in a dedicated commit.
+
+### Files to create (greenfield)
+
+When starting from an empty repo, expect at minimum:
+
+```text
+copyas/
+├── Package.swift
+├── README.md
+├── docs/
+│   └── SPEC.md
+├── .gitignore
+├── .swiftformat
+└── Sources/copyas/
+    └── … (see SPEC §6.1)
+```
+
+---
+
+## License
+
+TBD.
