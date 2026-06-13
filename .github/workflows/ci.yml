@@ -30,13 +30,7 @@ jobs:
         run: swiftformat --lint .
 
       - name: Test
-        run: swift test
+        run: swift test --enable-code-coverage -Xswiftc -warnings-as-errors
 
       - name: Coverage
-        run: Scripts/check-coverage.sh 90
-
-      - name: Build
-        run: swift build -Xswiftc -warnings-as-errors
-
-      - name: Release build
-        run: swift build -c release -Xswiftc -warnings-as-errors
+        run: Scripts/check-coverage.sh 90 --skip-test

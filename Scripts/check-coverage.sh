@@ -1,9 +1,30 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-minimum_coverage="${1:-90}"
+minimum_coverage="90"
+skip_test=false
 
-swift test --enable-code-coverage
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --skip-test)
+            skip_test=true
+            shift
+            ;;
+        *)
+            if [[ "$1" =~ ^[0-9]+$ ]]; then
+                minimum_coverage="$1"
+            else
+                echo "error: unknown argument: $1" >&2
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+if [[ "${skip_test}" == "false" ]]; then
+    swift test --enable-code-coverage
+fi
 
 profile_path="$(
     find .build -path "*/codecov/default.profdata" -type f 2>/dev/null | head -n 1
