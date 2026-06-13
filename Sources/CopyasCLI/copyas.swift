@@ -8,6 +8,7 @@ struct CopyasCLI {
         let environment = AppEnvironment(
             arguments: Array(CommandLine.arguments.dropFirst()),
             inputSource: { InputSource.live(readsClipboard: $0) },
+            modelClient: LiveModelClient(),
             writeStdout: { text in
                 FileHandle.standardOutput.write(Data(text.utf8))
             },

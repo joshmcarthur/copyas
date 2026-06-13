@@ -1,9 +1,46 @@
 import XCTest
 @testable import Copyas
 
+private final class OutputCapture: @unchecked Sendable {
+    var value = ""
+}
+
+struct FakeModelClient: ModelClient {
+    var output = "generated output"
+    var availabilityError: GenerationError?
+
+    func checkAvailability() throws {
+        if let availabilityError {
+            throw availabilityError
+        }
+    }
+
+    func generate(transform _: Transform, input _: String) async throws -> String {
+        output
+    }
+}
+
 final class CopyasAppTests: XCTestCase {
-    private final class OutputCapture: @unchecked Sendable {
-        var value = ""
+    private func makeEnvironment(
+        arguments: [String],
+        input: InputSource? = nil,
+        modelClient: FakeModelClient = FakeModelClient(),
+        stdout: OutputCapture,
+        stderr: OutputCapture
+    ) -> AppEnvironment {
+        AppEnvironment(
+            arguments: arguments,
+            inputSource: { _ in
+                input ?? InputSource(
+                    readsClipboard: false,
+                    readStdin: { Data("hello\n".utf8) },
+                    readClipboard: { nil }
+                )
+            },
+            modelClient: modelClient,
+            writeStdout: { stdout.value += $0 },
+            writeStderr: { stderr.value += $0 }
+        )
     }
 
     func testEmptyAppReturnsSuccess() async {
@@ -17,26 +54,6 @@ final class CopyasAppTests: XCTestCase {
 
         let exitCode = await CopyasApp.run(environment: environment)
         XCTAssertEqual(exitCode, 0)
-    }
-
-    private func makeEnvironment(
-        arguments: [String],
-        input: InputSource? = nil,
-        stdout: OutputCapture,
-        stderr: OutputCapture
-    ) -> AppEnvironment {
-        AppEnvironment(
-            arguments: arguments,
-            inputSource: { _ in
-                input ?? InputSource(
-                    readsClipboard: false,
-                    readStdin: { Data("hello\n".utf8) },
-                    readClipboard: { nil }
-                )
-            },
-            writeStdout: { stdout.value += $0 },
-            writeStderr: { stderr.value += $0 }
-        )
     }
 
     func testUnknownTransformWritesStderrAndExits64() async {
@@ -123,5 +140,70 @@ final class CopyasAppTests: XCTestCase {
         XCTAssertEqual(exitCode, 0)
         XCTAssertTrue(stdout.value.contains("USAGE:"))
         XCTAssertTrue(stderr.value.isEmpty)
+    }
+
+    func testDeviceNotEligibleExits2() async {
+        await assertModelError(.deviceNotEligible, expectedExit: 2)
+    }
+
+    func testAppleIntelligenceNotEnabledExits3() async {
+        await assertModelError(.appleIntelligenceNotEnabled, expectedExit: 3)
+    }
+
+    func testModelNotReadyExits4() async {
+        await assertModelError(.modelNotReady, expectedExit: 4)
+    }
+
+    func testModelUnavailableExits5() async {
+        await assertModelError(.modelUnavailable, expectedExit: 5)
+    }
+
+    func testGenerationFailedExits1() async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let failingEnvironment = AppEnvironment(
+            arguments: ["-t", "summary"],
+            inputSource: { _ in
+                InputSource(
+                    readsClipboard: false,
+                    readStdin: { Data("hello\n".utf8) },
+                    readClipboard: { nil }
+                )
+            },
+            modelClient: FailingModelClient(),
+            writeStdout: { stdout.value += $0 },
+            writeStderr: { stderr.value += $0 }
+        )
+
+        let exitCode = await CopyasApp.run(environment: failingEnvironment)
+
+        XCTAssertEqual(exitCode, 1)
+        XCTAssertEqual(stderr.value, "error: generation failed: boom\n")
+        XCTAssertTrue(stdout.value.isEmpty)
+    }
+
+    private func assertModelError(_ error: GenerationError, expectedExit: Int32) async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let environment = makeEnvironment(
+            arguments: ["-t", "summary"],
+            modelClient: FakeModelClient(availabilityError: error),
+            stdout: stdout,
+            stderr: stderr
+        )
+
+        let exitCode = await CopyasApp.run(environment: environment)
+
+        XCTAssertEqual(exitCode, expectedExit)
+        XCTAssertEqual(stderr.value, "\(error.message)\n")
+        XCTAssertTrue(stdout.value.isEmpty)
+    }
+}
+
+private struct FailingModelClient: ModelClient {
+    func checkAvailability() throws {}
+
+    func generate(transform _: Transform, input _: String) async throws -> String {
+        throw GenerationError.generationFailed("boom")
     }
 }

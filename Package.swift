@@ -15,6 +15,9 @@ let package = Package(
             name: "Copyas",
             dependencies: [
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+            ],
+            linkerSettings: [
+                .linkedFramework("FoundationModels"),
             ]
         ),
         .executableTarget(
