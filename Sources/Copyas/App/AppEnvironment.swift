@@ -1,18 +1,18 @@
 import Foundation
 
-public struct AppEnvironment {
+public struct AppEnvironment: Sendable {
     var arguments: [String]
     var inputSource: @Sendable (Bool) -> InputSource
     var modelClient: any ModelClient
-    var writeStdout: (String) -> Void
-    var writeStderr: (String) -> Void
+    var writeStdout: @Sendable (String) -> Void
+    var writeStderr: @Sendable (String) -> Void
 
     public init(
         arguments: [String],
         inputSource: @escaping @Sendable (Bool) -> InputSource,
         modelClient: any ModelClient,
-        writeStdout: @escaping (String) -> Void,
-        writeStderr: @escaping (String) -> Void
+        writeStdout: @escaping @Sendable (String) -> Void,
+        writeStderr: @escaping @Sendable (String) -> Void
     ) {
         self.arguments = arguments
         self.inputSource = inputSource

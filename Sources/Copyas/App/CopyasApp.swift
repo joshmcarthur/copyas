@@ -19,7 +19,11 @@ public enum CopyasApp {
 
             let input = try environment.inputSource(options.readsClipboard).readText()
             try environment.modelClient.checkAvailability()
-            _ = try await environment.modelClient.generate(transform: transform, input: input)
+            let output = try await environment.modelClient.generate(
+                transform: transform,
+                input: input
+            )
+            environment.writeStdout(output.hasSuffix("\n") ? output : "\(output)\n")
             return 0
         } catch let error as GenerationError {
             environment.writeStderr("\(error.message)\n")

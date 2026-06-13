@@ -1,5 +1,5 @@
-import XCTest
 @testable import Copyas
+import XCTest
 
 private final class OutputCapture: @unchecked Sendable {
     var value = ""
@@ -43,17 +43,36 @@ final class CopyasAppTests: XCTestCase {
         )
     }
 
-    func testEmptyAppReturnsSuccess() async {
+    func testVersionWritesStdoutAndExitsZero() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
         let environment = makeEnvironment(
-            arguments: ["-t", "summary"],
+            arguments: ["-v"],
             stdout: stdout,
             stderr: stderr
         )
 
         let exitCode = await CopyasApp.run(environment: environment)
+
         XCTAssertEqual(exitCode, 0)
+        XCTAssertEqual(stdout.value, "copyas 0.1.0\n")
+        XCTAssertTrue(stderr.value.isEmpty)
+    }
+
+    func testMissingTransformWritesStderrAndExits64() async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let environment = makeEnvironment(
+            arguments: [],
+            stdout: stdout,
+            stderr: stderr
+        )
+
+        let exitCode = await CopyasApp.run(environment: environment)
+
+        XCTAssertEqual(exitCode, 64)
+        XCTAssertEqual(stderr.value, "error: missing required transform\n")
+        XCTAssertTrue(stdout.value.isEmpty)
     }
 
     func testUnknownTransformWritesStderrAndExits64() async {
@@ -94,11 +113,12 @@ final class CopyasAppTests: XCTestCase {
         XCTAssertTrue(stdout.value.isEmpty)
     }
 
-    func testVersionWritesStdoutAndExitsZero() async {
+    func testSuccessfulRunWritesGeneratedOutputAndNoStderr() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
         let environment = makeEnvironment(
-            arguments: ["-v"],
+            arguments: ["-t", "summary"],
+            modelClient: FakeModelClient(output: "generated output"),
             stdout: stdout,
             stderr: stderr
         )
@@ -106,31 +126,16 @@ final class CopyasAppTests: XCTestCase {
         let exitCode = await CopyasApp.run(environment: environment)
 
         XCTAssertEqual(exitCode, 0)
-        XCTAssertEqual(stdout.value, "copyas 0.1.0\n")
+        XCTAssertEqual(stdout.value, "generated output\n")
         XCTAssertTrue(stderr.value.isEmpty)
     }
 
-    func testMissingTransformWritesStderrAndExits64() async {
+    func testOutputAlreadyEndingWithNewlineIsNotDuplicated() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
         let environment = makeEnvironment(
-            arguments: [],
-            stdout: stdout,
-            stderr: stderr
-        )
-
-        let exitCode = await CopyasApp.run(environment: environment)
-
-        XCTAssertEqual(exitCode, 64)
-        XCTAssertEqual(stderr.value, "error: missing required transform\n")
-        XCTAssertTrue(stdout.value.isEmpty)
-    }
-
-    func testHelpWritesStdoutAndExitsZero() async {
-        let stdout = OutputCapture()
-        let stderr = OutputCapture()
-        let environment = makeEnvironment(
-            arguments: ["-h"],
+            arguments: ["-t", "summary"],
+            modelClient: FakeModelClient(output: "generated output\n"),
             stdout: stdout,
             stderr: stderr
         )
@@ -138,7 +143,7 @@ final class CopyasAppTests: XCTestCase {
         let exitCode = await CopyasApp.run(environment: environment)
 
         XCTAssertEqual(exitCode, 0)
-        XCTAssertTrue(stdout.value.contains("USAGE:"))
+        XCTAssertEqual(stdout.value, "generated output\n")
         XCTAssertTrue(stderr.value.isEmpty)
     }
 
@@ -180,6 +185,22 @@ final class CopyasAppTests: XCTestCase {
         XCTAssertEqual(exitCode, 1)
         XCTAssertEqual(stderr.value, "error: generation failed: boom\n")
         XCTAssertTrue(stdout.value.isEmpty)
+    }
+
+    func testHelpWritesStdoutAndExitsZero() async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let environment = makeEnvironment(
+            arguments: ["-h"],
+            stdout: stdout,
+            stderr: stderr
+        )
+
+        let exitCode = await CopyasApp.run(environment: environment)
+
+        XCTAssertEqual(exitCode, 0)
+        XCTAssertTrue(stdout.value.contains("USAGE:"))
+        XCTAssertTrue(stderr.value.isEmpty)
     }
 
     private func assertModelError(_ error: GenerationError, expectedExit: Int32) async {

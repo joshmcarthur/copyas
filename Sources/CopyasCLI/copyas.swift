@@ -4,7 +4,7 @@ import Foundation
 
 @main
 struct CopyasCLI {
-    static func main() async {
+    nonisolated static func main() async {
         let environment = AppEnvironment(
             arguments: Array(CommandLine.arguments.dropFirst()),
             inputSource: { InputSource.live(readsClipboard: $0) },
