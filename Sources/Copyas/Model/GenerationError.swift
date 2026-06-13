@@ -1,6 +1,6 @@
 import Foundation
 
-enum GenerationError: Error, Equatable, Sendable {
+enum GenerationError: Error, Equatable {
     case missingTransform
     case noInput
     case unknownTransform(String)

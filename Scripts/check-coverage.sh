@@ -2,21 +2,24 @@
 set -euo pipefail
 
 minimum_coverage="${1:-90}"
-profile_path=".build/debug/codecov/default.profdata"
 
 swift test --enable-code-coverage
 
-if [[ ! -f "${profile_path}" ]]; then
-    echo "error: coverage profile not found at ${profile_path}" >&2
+profile_path="$(
+    find .build -path "*/codecov/default.profdata" -type f 2>/dev/null | head -n 1
+)"
+
+if [[ -z "${profile_path}" || ! -f "${profile_path}" ]]; then
+    echo "error: coverage profile not found under .build" >&2
     exit 1
 fi
 
 test_binary="$(
-    find .build/debug -path "*.xctest/Contents/MacOS/*" -type f -perm -111 | head -n 1
+    find .build -path "*.xctest/Contents/MacOS/*" -type f -perm -111 ! -name "*.dSYM" 2>/dev/null | head -n 1
 )"
 
 if [[ -z "${test_binary}" ]]; then
-    echo "error: SwiftPM test binary not found under .build/debug" >&2
+    echo "error: SwiftPM test binary not found under .build" >&2
     exit 1
 fi
 
@@ -30,7 +33,7 @@ printf "%s\n" "${coverage_report}"
 
 line_coverage="$(
     printf "%s\n" "${coverage_report}" |
-        awk '/^TOTAL/ { gsub("%", "", $9); print $9 }'
+        awk '/^TOTAL/ { gsub("%", "", $10); print $10 }'
 )"
 
 if [[ -z "${line_coverage}" ]]; then
