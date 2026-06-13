@@ -2,11 +2,14 @@ import Foundation
 
 enum GenerationError: Error, Equatable, Sendable {
     case missingTransform
+    case noInput
 
     var exitCode: Int32 {
         switch self {
         case .missingTransform:
             64
+        case .noInput:
+            6
         }
     }
 
@@ -14,6 +17,8 @@ enum GenerationError: Error, Equatable, Sendable {
         switch self {
         case .missingTransform:
             "error: missing required transform"
+        case .noInput:
+            "error: no input text"
         }
     }
 }

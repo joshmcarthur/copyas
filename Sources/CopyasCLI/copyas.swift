@@ -7,6 +7,7 @@ struct CopyasCLI {
     static func main() async {
         let environment = AppEnvironment(
             arguments: Array(CommandLine.arguments.dropFirst()),
+            inputSource: { InputSource.live(readsClipboard: $0) },
             writeStdout: { text in
                 FileHandle.standardOutput.write(Data(text.utf8))
             },

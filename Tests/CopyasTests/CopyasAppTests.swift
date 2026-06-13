@@ -7,23 +7,67 @@ final class CopyasAppTests: XCTestCase {
     }
 
     func testEmptyAppReturnsSuccess() async {
-        let environment = AppEnvironment(
-            arguments: [],
-            writeStdout: { _ in },
-            writeStderr: { _ in }
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let environment = makeEnvironment(
+            arguments: ["-t", "summary"],
+            stdout: stdout,
+            stderr: stderr
         )
 
         let exitCode = await CopyasApp.run(environment: environment)
-        XCTAssertEqual(exitCode, 64)
+        XCTAssertEqual(exitCode, 0)
+    }
+
+    private func makeEnvironment(
+        arguments: [String],
+        input: InputSource? = nil,
+        stdout: OutputCapture,
+        stderr: OutputCapture
+    ) -> AppEnvironment {
+        AppEnvironment(
+            arguments: arguments,
+            inputSource: { _ in
+                input ?? InputSource(
+                    readsClipboard: false,
+                    readStdin: { Data("hello\n".utf8) },
+                    readClipboard: { nil }
+                )
+            },
+            writeStdout: { stdout.value += $0 },
+            writeStderr: { stderr.value += $0 }
+        )
+    }
+
+    func testEmptyInputWritesStderrAndExits6() async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let emptyInput = InputSource(
+            readsClipboard: false,
+            readStdin: { Data("\n".utf8) },
+            readClipboard: { nil }
+        )
+        let environment = makeEnvironment(
+            arguments: ["-t", "summary"],
+            input: emptyInput,
+            stdout: stdout,
+            stderr: stderr
+        )
+
+        let exitCode = await CopyasApp.run(environment: environment)
+
+        XCTAssertEqual(exitCode, 6)
+        XCTAssertEqual(stderr.value, "error: no input text\n")
+        XCTAssertTrue(stdout.value.isEmpty)
     }
 
     func testVersionWritesStdoutAndExitsZero() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
-        let environment = AppEnvironment(
+        let environment = makeEnvironment(
             arguments: ["-v"],
-            writeStdout: { stdout.value += $0 },
-            writeStderr: { stderr.value += $0 }
+            stdout: stdout,
+            stderr: stderr
         )
 
         let exitCode = await CopyasApp.run(environment: environment)
@@ -36,10 +80,10 @@ final class CopyasAppTests: XCTestCase {
     func testMissingTransformWritesStderrAndExits64() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
-        let environment = AppEnvironment(
+        let environment = makeEnvironment(
             arguments: [],
-            writeStdout: { stdout.value += $0 },
-            writeStderr: { stderr.value += $0 }
+            stdout: stdout,
+            stderr: stderr
         )
 
         let exitCode = await CopyasApp.run(environment: environment)
@@ -52,10 +96,10 @@ final class CopyasAppTests: XCTestCase {
     func testHelpWritesStdoutAndExitsZero() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()
-        let environment = AppEnvironment(
+        let environment = makeEnvironment(
             arguments: ["-h"],
-            writeStdout: { stdout.value += $0 },
-            writeStderr: { stderr.value += $0 }
+            stdout: stdout,
+            stderr: stderr
         )
 
         let exitCode = await CopyasApp.run(environment: environment)

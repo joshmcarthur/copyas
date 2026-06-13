@@ -13,6 +13,9 @@ public enum CopyasApp {
             }
 
             _ = try options.requiredTransformName()
+
+            let input = try environment.inputSource(options.readsClipboard).readText()
+            _ = input
             return 0
         } catch let error as GenerationError {
             environment.writeStderr("\(error.message)\n")
