@@ -7,6 +7,7 @@ struct CopyasCLI {
     nonisolated static func main() async {
         let writeStdout: @Sendable (String) -> Void = { text in
             FileHandle.standardOutput.write(Data(text.utf8))
+            try? FileHandle.standardOutput.synchronize()
         }
 
         let environment = AppEnvironment(

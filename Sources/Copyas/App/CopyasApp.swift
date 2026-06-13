@@ -15,11 +15,23 @@ public enum CopyasApp {
             let input = try environment.makeInputSource(options.readsStdin).readText()
             try InputSuitability.validate(input)
             try environment.modelClient.checkAvailability()
-            let output = try await environment.modelClient.generate(
-                transform: transform,
-                input: input
-            )
-            try environment.makeOutputSink(options.writesClipboard).write(output)
+            let sink = environment.makeOutputSink(options.writesClipboard)
+            let useStreaming = !options.writesClipboard && !options.noStream
+            if useStreaming {
+                let output = try await environment.modelClient.generate(
+                    transform: transform,
+                    input: input,
+                    onPartial: { sink.writePartial($0) }
+                )
+                try sink.finalize(output)
+            } else {
+                let output = try await environment.modelClient.generate(
+                    transform: transform,
+                    input: input,
+                    onPartial: nil
+                )
+                try sink.write(output)
+            }
             return 0
         } catch {
             return handleExit(error, environment: environment)

@@ -15,8 +15,22 @@ struct FakeModelClient: ModelClient {
         }
     }
 
-    func generate(transform _: Transform, input _: String) async throws -> String {
-        output
+    func generate(
+        transform _: Transform,
+        input _: String,
+        onPartial: (@Sendable (String) -> Void)?
+    ) async throws -> String {
+        if let onPartial {
+            var previousLength = 0
+            for index in output.indices {
+                let partial = String(output[...index])
+                guard partial.count > previousLength else { continue }
+                let delta = String(partial.dropFirst(previousLength))
+                previousLength = partial.count
+                onPartial(delta)
+            }
+        }
+        return output
     }
 }
 
@@ -210,6 +224,40 @@ final class CopyasAppTests: XCTestCase {
         XCTAssertTrue(stderr.value.isEmpty)
     }
 
+    func testStreamingRunWritesPartialsThenFinalizes() async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let environment = makeEnvironment(
+            arguments: ["summary", "--stdin"],
+            modelClient: FakeModelClient(output: "ab"),
+            stdout: stdout,
+            stderr: stderr
+        )
+
+        let exitCode = await CopyasApp.run(environment: environment)
+
+        XCTAssertEqual(exitCode, 0)
+        XCTAssertEqual(stdout.value, "ab\n")
+        XCTAssertTrue(stderr.value.isEmpty)
+    }
+
+    func testNoStreamFlagBuffersOutput() async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let environment = makeEnvironment(
+            arguments: ["summary", "--stdin", "--no-stream"],
+            modelClient: FakeModelClient(output: "generated output"),
+            stdout: stdout,
+            stderr: stderr
+        )
+
+        let exitCode = await CopyasApp.run(environment: environment)
+
+        XCTAssertEqual(exitCode, 0)
+        XCTAssertEqual(stdout.value, "generated output\n")
+        XCTAssertTrue(stderr.value.isEmpty)
+    }
+
     func testDeviceNotEligibleExits2() async {
         await assertModelError(.deviceNotEligible, expectedExit: 2)
     }
@@ -295,7 +343,11 @@ final class CopyasAppTests: XCTestCase {
 private struct FailingModelClient: ModelClient {
     func checkAvailability() throws {}
 
-    func generate(transform _: Transform, input _: String) async throws -> String {
+    func generate(
+        transform _: Transform,
+        input _: String,
+        onPartial _: (@Sendable (String) -> Void)?
+    ) async throws -> String {
         throw GenerationError.generationFailed("boom")
     }
 }

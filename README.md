@@ -36,8 +36,8 @@ ln -sf "$(pwd)/.build/release/copyas" /usr/local/bin/copyas
 ### Usage
 
 ```text
-copyas TRANSFORM [--stdin] [--write] [--help] [--version]
-copyas TRANSFORM [--stdin] [-w] [-h] [-v]
+copyas TRANSFORM [--stdin] [--write] [--no-stream] [--help] [--version]
+copyas TRANSFORM [--stdin] [-w] [--no-stream] [-h] [-v]
 ```
 
 | Argument / flag | Description |
@@ -45,6 +45,7 @@ copyas TRANSFORM [--stdin] [-w] [-h] [-v]
 | `TRANSFORM` | Transform to apply: `summary`, `markdown`, `pirate` |
 | `--stdin` | Read from stdin instead of clipboard (for pipes and file redirection) |
 | `-w`, `--write` | Write result to clipboard instead of stdout |
+| `--no-stream` | Buffer the full response before writing to stdout |
 | `-h`, `--help` | Show usage |
 | `-v`, `--version` | Show version |
 
@@ -68,9 +69,18 @@ copyas markdown
 # Summarise a file
 copyas summary --stdin < report.txt
 
-# Pipe through other tools
+# Pipe through other tools (streaming stdout is fine for tee)
 cat draft.txt | copyas markdown --stdin | tee formatted.md
+
+# Buffer the full response before writing stdout (for scripts expecting one write)
+copyas summary --stdin --no-stream < report.txt
 ```
+
+### Output behaviour
+
+By default, stdout mode **streams** the transformed text as the model generates it. Use `--no-stream` to wait for the full response before writing stdout. Clipboard mode (`-w`) always buffers the complete result.
+
+Errors are printed to **stderr**. Transformed text goes to **stdout** by default (streamed), or to the clipboard with `-w` (stdout stays silent on success).
 
 ### Exit codes
 
@@ -84,8 +94,6 @@ cat draft.txt | copyas markdown --stdin | tee formatted.md
 | `5` | Model unavailable (other) |
 | `6` | No input text |
 | `64` | Invalid usage (missing/unknown transform) |
-
-Errors are printed to **stderr**. Transformed text goes to **stdout** by default, or to the clipboard with `-w` (stdout stays silent on success).
 
 ### Formatting
 

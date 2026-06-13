@@ -80,7 +80,7 @@ General generation failure MUST exit `1` with a concise stderr message.
 ### 4.1 Invocation
 
 ```text
-copyas TRANSFORM [--stdin] [--write | -w] [--help | -h] [--version | -v]
+copyas TRANSFORM [--stdin] [--write | -w] [--no-stream] [--help | -h] [--version | -v]
 ```
 
 | Argument / flag | Short | Required | Description |
@@ -88,6 +88,7 @@ copyas TRANSFORM [--stdin] [--write | -w] [--help | -h] [--version | -v]
 | `TRANSFORM` | — | **Yes** | Positional transform name (see §5) |
 | `--stdin` | — | No | Read input from stdin instead of clipboard |
 | `--write` | `-w` | No | Write result to clipboard instead of stdout |
+| `--no-stream` | — | No | Buffer the full response before writing to stdout |
 | `--help` | `-h` | No | Print usage; exit `0` |
 | `--version` | `-v` | No | Print name and version; exit `0` |
 
@@ -100,8 +101,9 @@ Trim trailing whitespace from input; do **not** trim leading whitespace (code bl
 
 ### 4.3 Output
 
-- If `--write` / `-w` is set → write transformed text to the general pasteboard; **stdout stays silent** on success.
-- Else → transformed text → **stdout** (UTF-8, trailing newline optional but preferred for POSIX tools).
+- If `--write` / `-w` is set → write transformed text to the general pasteboard; **stdout stays silent** on success. Clipboard mode always buffers the full response.
+- Else if `--no-stream` is set → buffer the full response, then write to **stdout** in one write (UTF-8, trailing newline optional but preferred for POSIX tools).
+- Else → **stream** transformed text to **stdout** incrementally as the model generates it; append a trailing newline at the end if the response lacks one.
 - Errors, warnings, progress → **stderr** only.
 - No ANSI colour in v0.1.
 - Clipboard write failure MUST exit `1` with `error: failed to write to clipboard`.
@@ -120,6 +122,9 @@ copyas summary --stdin < notes.txt
 
 # Pirate speak via pipe
 echo "Hello, world!" | copyas pirate --stdin
+
+# Buffered stdout (single write)
+copyas summary --stdin --no-stream < notes.txt
 
 # Unknown transform
 copyas lolcat
@@ -225,9 +230,10 @@ Use `SystemLanguageModel.default` and `LanguageModelSession` from Foundation Mod
 Pattern:
 
 1. Check availability (§3).
-2. Create session (reuse default model; pass transform-specific instructions via session instructions or prompt prefix — follow current Apple API best practice).
-3. Call `respond(to:)` (or streaming API if needed; v0.1 may use non-streaming for simplicity).
-4. Return generated string.
+2. Create session (reuse default model; pass transform-specific instructions via session instructions).
+3. For stdout streaming (default): call `streamResponse(to:)`, emit incremental deltas to stdout, then `collect()` for the final response.
+4. For buffered output (`--no-stream` or `--write` / `-w`): call `respond(to:)`.
+5. Return generated string after `TransformOutput.parse`.
 
 Session instructions SHOULD encode the transform system prompt; user content SHOULD be the input text.
 
@@ -292,7 +298,8 @@ Before marking v0.1 complete, verify:
 - [ ] `swift build -c release` produces `copyas` binary
 - [ ] `copyas -h` prints usage
 - [ ] `copyas -v` prints version
-- [ ] `copyas summary --stdin` summarises stdin text
+- [ ] `copyas summary --stdin` streams transformed text to stdout incrementally
+- [ ] `copyas summary --stdin --no-stream` buffers stdout output
 - [ ] `copyas markdown -w` reads clipboard and writes result back (manual test on AI-enabled Mac)
 - [ ] `copyas pirate --stdin` rewrites piped text
 - [ ] Missing `TRANSFORM` → exit `64`

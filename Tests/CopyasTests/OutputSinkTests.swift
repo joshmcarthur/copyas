@@ -61,4 +61,59 @@ final class OutputSinkTests: XCTestCase {
             XCTAssertEqual(error as? GenerationError, .clipboardWriteFailed)
         }
     }
+
+    func testWritePartialAppendsWithoutNewline() {
+        let stdout = OutputCapture()
+        let sink = OutputSink(
+            writesClipboard: false,
+            writeStdout: { stdout.value += $0 },
+            writeClipboard: { _ in true }
+        )
+
+        sink.writePartial("hel")
+        sink.writePartial("lo")
+
+        XCTAssertEqual(stdout.value, "hello")
+    }
+
+    func testFinalizeAddsTrailingNewlineWhenMissing() throws {
+        let stdout = OutputCapture()
+        let sink = OutputSink(
+            writesClipboard: false,
+            writeStdout: { stdout.value += $0 },
+            writeClipboard: { _ in true }
+        )
+
+        sink.writePartial("hello")
+        try sink.finalize("hello")
+
+        XCTAssertEqual(stdout.value, "hello\n")
+    }
+
+    func testFinalizeDoesNotDuplicateNewline() throws {
+        let stdout = OutputCapture()
+        let sink = OutputSink(
+            writesClipboard: false,
+            writeStdout: { stdout.value += $0 },
+            writeClipboard: { _ in true }
+        )
+
+        sink.writePartial("hello\n")
+        try sink.finalize("hello\n")
+
+        XCTAssertEqual(stdout.value, "hello\n")
+    }
+
+    func testWritePartialIsNoOpForClipboardMode() {
+        let stdout = OutputCapture()
+        let sink = OutputSink(
+            writesClipboard: true,
+            writeStdout: { stdout.value += $0 },
+            writeClipboard: { _ in true }
+        )
+
+        sink.writePartial("hello")
+
+        XCTAssertTrue(stdout.value.isEmpty)
+    }
 }

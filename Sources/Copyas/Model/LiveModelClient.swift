@@ -19,16 +19,45 @@ public struct LiveModelClient: ModelClient {
         }
     }
 
-    public func generate(transform: Transform, input: String) async throws -> String {
+    public func generate(
+        transform: Transform,
+        input: String,
+        onPartial: (@Sendable (String) -> Void)?
+    ) async throws -> String {
         do {
             let session = LanguageModelSession(
                 model: SystemLanguageModel.default,
                 instructions: transform.instructions
             )
+            if let onPartial {
+                return try await generateStreaming(
+                    session: session,
+                    input: input,
+                    onPartial: onPartial
+                )
+            }
             let response = try await session.respond(to: input)
             return try TransformOutput.parse(response.content)
         } catch {
             throw FoundationModelsErrorMapper.map(error)
         }
+    }
+
+    private func generateStreaming(
+        session: LanguageModelSession,
+        input: String,
+        onPartial: @Sendable (String) -> Void
+    ) async throws -> String {
+        let stream = session.streamResponse(to: input)
+        var previousLength = 0
+        for try await snapshot in stream {
+            let content = snapshot.content
+            guard content.count > previousLength else { continue }
+            let delta = String(content.dropFirst(previousLength))
+            previousLength = content.count
+            onPartial(delta)
+        }
+        let response = try await stream.collect()
+        return try TransformOutput.parse(response.content)
     }
 }

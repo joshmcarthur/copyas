@@ -21,6 +21,17 @@ public struct OutputSink: Sendable {
         )
     }
 
+    func writePartial(_ delta: String) {
+        guard !writesClipboard, !delta.isEmpty else { return }
+        writeStdout(delta)
+    }
+
+    func finalize(_ text: String) throws {
+        guard !writesClipboard else { return }
+        guard !text.hasSuffix("\n") else { return }
+        writeStdout("\n")
+    }
+
     func write(_ text: String) throws {
         if writesClipboard {
             guard writeClipboard(text) else {

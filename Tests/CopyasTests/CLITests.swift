@@ -9,6 +9,7 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(options.transform, "summary")
         XCTAssertFalse(options.readsStdin)
         XCTAssertFalse(options.writesClipboard)
+        XCTAssertFalse(options.noStream)
     }
 
     func testParsesStdinFlag() throws {
@@ -25,5 +26,14 @@ final class CLITests: XCTestCase {
         XCTAssertEqual(options.transform, "markdown")
         XCTAssertFalse(options.readsStdin)
         XCTAssertTrue(options.writesClipboard)
+    }
+
+    func testParsesNoStreamFlag() throws {
+        let options = try CopyasOptions.parse(["summary", "--stdin", "--no-stream"])
+
+        XCTAssertEqual(options.transform, "summary")
+        XCTAssertTrue(options.readsStdin)
+        XCTAssertFalse(options.writesClipboard)
+        XCTAssertTrue(options.noStream)
     }
 }
