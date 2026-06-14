@@ -1,3 +1,4 @@
+import AppKit
 @testable import Copyas
 import XCTest
 
@@ -114,6 +115,46 @@ final class OutputSinkTests: XCTestCase {
 
         sink.writePartial("hello")
 
+        XCTAssertTrue(stdout.value.isEmpty)
+    }
+
+    func testWritePartialIgnoresEmptyDelta() {
+        let stdout = OutputCapture()
+        let sink = OutputSink(
+            writesClipboard: false,
+            writeStdout: { stdout.value += $0 },
+            writeClipboard: { _ in true }
+        )
+
+        sink.writePartial("")
+
+        XCTAssertTrue(stdout.value.isEmpty)
+    }
+
+    func testFinalizeIsNoOpForClipboardMode() throws {
+        let stdout = OutputCapture()
+        let sink = OutputSink(
+            writesClipboard: true,
+            writeStdout: { stdout.value += $0 },
+            writeClipboard: { _ in true }
+        )
+
+        try sink.finalize("hello")
+
+        XCTAssertTrue(stdout.value.isEmpty)
+    }
+
+    func testLiveWritesToClipboard() throws {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        defer { pasteboard.clearContents() }
+
+        let stdout = OutputCapture()
+        let sink = OutputSink.live(writesClipboard: true, writeStdout: { stdout.value += $0 })
+
+        try sink.write("live output")
+
+        XCTAssertEqual(pasteboard.string(forType: .string), "live output")
         XCTAssertTrue(stdout.value.isEmpty)
     }
 }

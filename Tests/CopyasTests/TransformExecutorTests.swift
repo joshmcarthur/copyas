@@ -1,3 +1,4 @@
+import AppKit
 @testable import Copyas
 import XCTest
 
@@ -175,6 +176,47 @@ final class TransformExecutorTests: XCTestCase {
             XCTFail("Expected clipboardWriteFailed error")
         } catch let error as GenerationError {
             XCTAssertEqual(error, .clipboardWriteFailed)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testClipboardOnlyEnvironmentUsesLivePasteboard() async throws {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        defer { pasteboard.clearContents() }
+        XCTAssertTrue(pasteboard.setString("clipboard input", forType: .string))
+
+        let client = CountingModelClient()
+        client.output = "transformed output"
+        let environment = AppEnvironment.clipboardOnly(modelClient: client)
+
+        let output = try await TransformExecutor.run(
+            transform: .summary,
+            configuration: .clipboardOnly,
+            environment: environment
+        )
+
+        XCTAssertEqual(output, "transformed output")
+        XCTAssertEqual(pasteboard.string(forType: .string), "transformed output")
+        XCTAssertEqual(client.generateCallCount, 1)
+    }
+
+    func testClipboardOnlyEnvironmentThrowsWhenPasteboardEmpty() async {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+
+        let environment = AppEnvironment.clipboardOnly(modelClient: CountingModelClient())
+
+        do {
+            _ = try await TransformExecutor.run(
+                transform: .summary,
+                configuration: .clipboardOnly,
+                environment: environment
+            )
+            XCTFail("Expected noInput error")
+        } catch let error as GenerationError {
+            XCTAssertEqual(error, .noInput)
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
