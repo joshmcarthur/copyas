@@ -10,11 +10,19 @@ enum FoundationModelsErrorMapper {
             return .contentBlocked
         }
 
+        if containsContextWindowExceeded(error) {
+            return .contextWindowExceeded
+        }
+
         if containsModelAssetFailure(error) {
             return .modelAssetsUnavailable
         }
 
         return .generationFailed(String(describing: error))
+    }
+
+    private static func containsContextWindowExceeded(_ error: Error) -> Bool {
+        String(describing: error).contains("exceededContextWindowSize")
     }
 
     private static func containsGuardrailViolation(_ error: Error) -> Bool {

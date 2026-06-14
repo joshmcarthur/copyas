@@ -23,4 +23,19 @@ public struct AppEnvironment: Sendable {
         self.writeStdout = writeStdout
         self.writeStderr = writeStderr
     }
+
+    public static func clipboardOnly(modelClient: any ModelClient) -> AppEnvironment {
+        AppEnvironment(
+            arguments: [],
+            makeInputSource: { readsStdin in
+                InputSource.live(readsStdin: readsStdin)
+            },
+            makeOutputSink: { writesClipboard in
+                OutputSink.live(writesClipboard: writesClipboard, writeStdout: { _ in })
+            },
+            modelClient: modelClient,
+            writeStdout: { _ in },
+            writeStderr: { _ in }
+        )
+    }
 }

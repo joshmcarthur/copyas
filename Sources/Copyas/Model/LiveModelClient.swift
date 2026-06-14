@@ -25,10 +25,7 @@ public struct LiveModelClient: ModelClient {
         onPartial: (@Sendable (String) -> Void)?
     ) async throws -> String {
         do {
-            let session = LanguageModelSession(
-                model: SystemLanguageModel.default,
-                instructions: transform.instructions
-            )
+            let session = makeSession(transform: transform)
             if let onPartial {
                 return try await generateStreaming(
                     session: session,
@@ -41,6 +38,23 @@ public struct LiveModelClient: ModelClient {
         } catch {
             throw FoundationModelsErrorMapper.map(error)
         }
+    }
+
+    public func prewarm(transform: Transform) {
+        makeSession(transform: transform).prewarm()
+    }
+
+    public func prewarmAllTransforms() {
+        for transform in Transform.allCases {
+            prewarm(transform: transform)
+        }
+    }
+
+    private func makeSession(transform: Transform) -> LanguageModelSession {
+        LanguageModelSession(
+            model: SystemLanguageModel.default,
+            instructions: transform.instructions
+        )
     }
 
     private func generateStreaming(

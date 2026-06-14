@@ -37,10 +37,14 @@ It is designed for shell pipelines, clipboard workflows, and automation — not 
 ### Non-goals (v0.1)
 
 - Windows or Linux support
-- Interactive TUI or GUI
+- Interactive TUI
 - Custom / user-defined transforms (future work)
 - Network calls or third-party LLM APIs (v0.1 uses on-device model only)
 - Writing to both stdout and clipboard simultaneously
+
+### Menubar companion (optional)
+
+A minimal **Copyas** menubar app may ship alongside the CLI. It is a clipboard-only UI: read from the general pasteboard, apply a selected transform, write back to the clipboard. It does not support stdin, streaming stdout, or CLI flags. Transform behaviour, availability checks, and error messages MUST match the CLI pipeline (`TransformExecutor`). The CLI remains the source of truth for scripting and automation.
 
 ---
 

@@ -29,6 +29,9 @@ jobs:
       - name: Lint formatting
         run: swiftformat --lint .
 
+      - name: Build menubar app
+        run: swift build --product CopyasMenuBar -Xswiftc -warnings-as-errors
+
       - name: Test
         run: swift test --enable-code-coverage -Xswiftc -warnings-as-errors
 

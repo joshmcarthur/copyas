@@ -38,6 +38,21 @@ final class FoundationModelsErrorMapperTests: XCTestCase {
         XCTAssertEqual(FoundationModelsErrorMapper.map(error), .modelAssetsUnavailable)
     }
 
+    func testMapsContextWindowExceededToFriendlyError() {
+        let error = TestError(
+            description: """
+            exceededContextWindowSize(FoundationModels.LanguageModelSession.GenerationError.Context(\
+            debugDescription: "Content contains 4111 tokens", underlyingErrors: []))
+            """
+        )
+
+        XCTAssertEqual(FoundationModelsErrorMapper.map(error), .contextWindowExceeded)
+        XCTAssertEqual(
+            GenerationError.contextWindowExceeded.userFacingMessage,
+            "clipboard text is too long to transform in one pass; try with shorter text"
+        )
+    }
+
     func testMapsGuardrailViolationToContentBlocked() {
         let error = TestError(
             description: """

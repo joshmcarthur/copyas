@@ -1,6 +1,6 @@
 import Foundation
 
-enum GenerationError: Error, Equatable {
+public enum GenerationError: Error, Equatable {
     case missingTransform
     case noInput
     case unsuitableInput
@@ -12,6 +12,7 @@ enum GenerationError: Error, Equatable {
     case modelUnavailable
     case modelAssetsUnavailable
     case contentBlocked
+    case contextWindowExceeded
     case generationFailed(String)
 
     var exitCode: Int32 {
@@ -30,37 +31,47 @@ enum GenerationError: Error, Equatable {
             4
         case .modelUnavailable:
             5
-        case .contentBlocked, .generationFailed, .clipboardWriteFailed:
+        case .contentBlocked, .generationFailed, .clipboardWriteFailed, .contextWindowExceeded:
             1
         }
     }
 
-    var message: String {
+    private var displayMessage: String {
         switch self {
         case .missingTransform:
-            "error: missing required transform"
+            "missing required transform"
         case .noInput:
-            "error: no input text"
+            "no input text"
         case .unsuitableInput:
-            "error: input does not contain enough meaningful text to transform"
+            "input does not contain enough meaningful text to transform"
         case let .unknownTransform(name):
-            "error: unknown transform \"\(name)\""
+            "unknown transform \"\(name)\""
         case .clipboardWriteFailed:
-            "error: failed to write to clipboard"
+            "failed to write to clipboard"
         case .deviceNotEligible:
-            "error: device does not support Apple Intelligence"
+            "device does not support Apple Intelligence"
         case .appleIntelligenceNotEnabled:
-            "error: enable Apple Intelligence in System Settings"
+            "enable Apple Intelligence in System Settings"
         case .modelNotReady:
-            "error: language model is not ready"
+            "language model is not ready"
         case .modelUnavailable:
-            "error: language model unavailable"
+            "language model unavailable"
         case .modelAssetsUnavailable:
-            "error: Apple Intelligence model assets are unavailable; toggle Apple Intelligence off and on in System Settings, then restart your Mac"
+            "Apple Intelligence model assets are unavailable; toggle Apple Intelligence off and on in System Settings, then restart your Mac"
         case .contentBlocked:
-            "error: generation blocked by Apple Intelligence safety guardrails"
+            "generation blocked by Apple Intelligence safety guardrails"
+        case .contextWindowExceeded:
+            "clipboard text is too long to transform in one pass; try with shorter text"
         case let .generationFailed(message):
-            "error: generation failed: \(message)"
+            "generation failed: \(message)"
         }
+    }
+
+    public var message: String {
+        "error: \(displayMessage)"
+    }
+
+    public var userFacingMessage: String {
+        displayMessage
     }
 }

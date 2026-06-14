@@ -32,6 +32,10 @@ struct FakeModelClient: ModelClient {
         }
         return output
     }
+
+    func prewarm(transform _: Transform) {}
+
+    func prewarmAllTransforms() {}
 }
 
 final class CopyasAppTests: XCTestCase {
@@ -350,4 +354,8 @@ private struct FailingModelClient: ModelClient {
     ) async throws -> String {
         throw GenerationError.generationFailed("boom")
     }
+
+    func prewarm(transform _: Transform) {}
+
+    func prewarmAllTransforms() {}
 }

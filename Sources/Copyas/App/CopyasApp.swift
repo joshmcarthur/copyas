@@ -12,26 +12,16 @@ public enum CopyasApp {
                 throw GenerationError.unknownTransform(options.transform)
             }
 
-            let input = try environment.makeInputSource(options.readsStdin).readText()
-            try InputSuitability.validate(input)
-            try environment.modelClient.checkAvailability()
-            let sink = environment.makeOutputSink(options.writesClipboard)
-            let useStreaming = !options.writesClipboard && !options.noStream
-            if useStreaming {
-                let output = try await environment.modelClient.generate(
-                    transform: transform,
-                    input: input,
-                    onPartial: { sink.writePartial($0) }
-                )
-                try sink.finalize(output)
-            } else {
-                let output = try await environment.modelClient.generate(
-                    transform: transform,
-                    input: input,
-                    onPartial: nil
-                )
-                try sink.write(output)
-            }
+            let configuration = TransformExecutor.Configuration(
+                readsStdin: options.readsStdin,
+                writesClipboard: options.writesClipboard,
+                streamsToStdout: !options.writesClipboard && !options.noStream
+            )
+            _ = try await TransformExecutor.run(
+                transform: transform,
+                configuration: configuration,
+                environment: environment
+            )
             return 0
         } catch {
             return handleExit(error, environment: environment)

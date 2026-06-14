@@ -7,4 +7,6 @@ public protocol ModelClient: Sendable {
         input: String,
         onPartial: (@Sendable (String) -> Void)?
     ) async throws -> String
+    func prewarm(transform: Transform)
+    func prewarmAllTransforms()
 }

@@ -33,6 +33,25 @@ The binary is at `.build/release/copyas`. Add it to your `PATH` or symlink it:
 ln -sf "$(pwd)/.build/release/copyas" /usr/local/bin/copyas
 ```
 
+### Menubar app
+
+**Copyas** also ships as a minimal menubar app — a clipboard-first UI for the same transforms. Copy text, pick a transform from the menu, and the result is written back to the clipboard with a notification.
+
+Build and run:
+
+```bash
+./Scripts/build-menubar-app.sh
+open dist/Copyas.app
+```
+
+The app runs as a menu bar agent (no Dock icon). Use **Quit Copyas** in the menu to exit.
+
+To install locally:
+
+```bash
+cp -R dist/Copyas.app ~/Applications/
+```
+
 ### Usage
 
 ```text
