@@ -103,7 +103,10 @@ final class TransformExecutorTests: XCTestCase {
 
     func testUnsuitableInputThrowsAndSkipsModel() async {
         let countingClient = CountingModelClient()
-        let (environment, _, _) = makeEnvironment(input: "23af655ba1dd", modelClient: countingClient)
+        let (environment, _, _) = makeEnvironment(
+            input: "23af655ba1dd",
+            modelClient: countingClient
+        )
 
         do {
             _ = try await TransformExecutor.run(
