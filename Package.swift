@@ -20,6 +20,7 @@ let package = Package(
         .target(
             name: "Copyas",
             dependencies: [
+                "RecursiveTextSplit",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],
             linkerSettings: [
