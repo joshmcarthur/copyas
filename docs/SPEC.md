@@ -194,6 +194,26 @@ enum Transform: String, CaseIterable {
 
 `copyas summary` and `copyas SUMMARY` SHOULD accept case-insensitive names (normalise to lowercase).
 
+### 5.5 Transform chunking profile
+
+Every transform MUST declare a `TransformChunkingProfile` alongside `instructions`:
+
+| Field | Purpose |
+|-------|---------|
+| `mode` | `stuff` (single pass), `mapOnly` (independent chunks), or `mapReduce` (summary merge) |
+| `split` | `RecursiveTextSplit` separator preset and overlap |
+| `merge` | Concatenate chunks or model-assisted reduce |
+| `outputTokenReserve` | Tokens reserved for generation |
+| `maxReduceDepth` | Collapse recursion cap for map-reduce (default 3) |
+
+| Transform | Mode | Merge |
+|-----------|------|-------|
+| `pirate` | `mapOnly` | concatenate with `\n\n` |
+| `markdown` | `mapOnly` | concatenate with `\n\n` |
+| `summary` | `mapReduce` | reduce pass with merge instructions |
+
+When adding a transform, decide: global context needed? → `mapReduce`. Output similar length to input? → higher `outputTokenReserve`.
+
 ---
 
 ## 6. Architecture
@@ -241,7 +261,19 @@ Pattern:
 
 Session instructions SHOULD encode the transform system prompt; user content SHOULD be the input text.
 
-### 6.3 Dependencies
+#### Long-input chunking
+
+When input exceeds the on-device context window (4,096 tokens via `SystemLanguageModel.contextSize`), `LiveModelClient` automatically chunks input using [`RecursiveTextSplit`](Sources/RecursiveTextSplit/) (LangChain-compatible `RecursiveCharacterTextSplitter`).
+
+1. **Budget** — `TokenBudget` uses `tokenCount(for:)` on macOS 26.4+ (`Instructions` for system prompts, `String` for user content); falls back to TN3193 character heuristics on earlier OS versions. Splitting calibrates heuristics against a 512-character FM sample when available (heuristics often underestimate Latin prose by ~20–35%); chunks are FM-validated before generation.
+2. **Split** — per-transform `TransformChunkingProfile.split` settings.
+3. **Generate** — fresh `LanguageModelSession` per chunk (TN3193).
+4. **Merge** — `mapOnly` transforms concatenate; `summary` uses map-reduce with collapse when reduce input still exceeds budget.
+5. **Stream** — stdout streaming emits chunk 1, then chunk 2, sequentially.
+
+Failure: if a single semantic chunk still exceeds the budget after splitting, exit `1` with `text is too long even after splitting; try with shorter text`.
+
+---
 
 | Package | Use |
 |---------|-----|

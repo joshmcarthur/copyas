@@ -99,6 +99,8 @@ copyas summary --stdin --no-stream < report.txt
 
 By default, stdout mode **streams** the transformed text as the model generates it. Use `--no-stream` to wait for the full response before writing stdout. Clipboard mode (`-w`) always buffers the complete result.
 
+Long clipboard text is split automatically when it exceeds the on-device context window. Chunking uses a LangChain-compatible splitter (`RecursiveTextSplit`); transforms declare how chunks are merged (concatenate for rewrite transforms, map-reduce for `summary`).
+
 Errors are printed to **stderr**. Transformed text goes to **stdout** by default (streamed), or to the clipboard with `-w` (stdout stays silent on success).
 
 ### Exit codes
