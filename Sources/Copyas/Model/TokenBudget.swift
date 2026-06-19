@@ -45,6 +45,16 @@ public struct HeuristicTextLengthCounter: TextLengthCounter {
     }
 }
 
+extension HeuristicTextLengthCounter: AsyncTokenCounter {
+    public func tokenCount(forPrompt text: String) async throws -> Int {
+        length(of: text)
+    }
+
+    public func tokenCount(forInstructions text: String) async throws -> Int {
+        length(of: text)
+    }
+}
+
 public struct TokenBudget: Sendable {
     private static let instructionSafetyMargin = 64
 
@@ -196,6 +206,16 @@ public struct FixedTextLengthCounter: TextLengthCounter {
 
     public func length(of text: String) -> Int {
         counts[text] ?? defaultLength
+    }
+}
+
+extension FixedTextLengthCounter: AsyncTokenCounter {
+    public func tokenCount(forPrompt text: String) async throws -> Int {
+        length(of: text)
+    }
+
+    public func tokenCount(forInstructions text: String) async throws -> Int {
+        length(of: text)
     }
 }
 

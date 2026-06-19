@@ -96,8 +96,8 @@ final class TokenBudgetTests: XCTestCase {
         XCTAssertEqual(HeuristicTextLengthCounter.estimatedTokenCount(for: ""), 0)
     }
 
-    func testAsyncFitsInOnePassWithFakeCounter() async throws {
-        let budget = TokenBudget(tokenCounter: FakeAsyncTokenCounter(defaultLength: 10))
+    func testAsyncFitsInOnePassWithStubCounter() async throws {
+        let budget = TokenBudget(tokenCounter: FixedTextLengthCounter(defaultLength: 10))
         let profile = Transform.pirate.chunkingProfile
         let fits = try await budget.fitsInOnePass(
             profile: profile,
@@ -107,8 +107,20 @@ final class TokenBudgetTests: XCTestCase {
         XCTAssertTrue(fits)
     }
 
-    func testAsyncFitsInBudgetWithFakeCounter() async throws {
-        let budget = TokenBudget(tokenCounter: FakeAsyncTokenCounter(
+    func testAsyncLongInputNeedsChunkingWithHeuristicStub() async throws {
+        let budget = TokenBudget(tokenCounter: HeuristicTextLengthCounter())
+        let profile = Transform.pirate.chunkingProfile
+        let input = String(repeating: "word ", count: 10000)
+        let fits = try await budget.fitsInOnePass(
+            profile: profile,
+            instructions: Transform.pirate.instructions,
+            input: input
+        )
+        XCTAssertFalse(fits)
+    }
+
+    func testAsyncFitsInBudgetWithStubCounter() async throws {
+        let budget = TokenBudget(tokenCounter: FixedTextLengthCounter(
             contextSize: 100,
             defaultLength: 10
         ))
@@ -126,8 +138,8 @@ final class TokenBudgetTests: XCTestCase {
         XCTAssertFalse(overBudget)
     }
 
-    func testAsyncMaxInputTokensWithFakeCounter() async throws {
-        let counter = FakeAsyncTokenCounter(contextSize: 1000, defaultLength: 100)
+    func testAsyncMaxInputTokensWithStubCounter() async throws {
+        let counter = FixedTextLengthCounter(contextSize: 1000, defaultLength: 100)
         let budget = TokenBudget(tokenCounter: counter)
         let profile = Transform.summary.chunkingProfile
         let maxInput = try await budget.maxInputTokens(
@@ -137,13 +149,13 @@ final class TokenBudgetTests: XCTestCase {
         XCTAssertLessThan(maxInput, counter.contextSize)
     }
 
-    func testAsyncSplitProducesMultipleChunksWithFakeCounter() async throws {
+    func testAsyncSplitProducesMultipleChunksWithStubCounter() async throws {
         let profile = TransformChunkingProfile(
             mode: .mapOnly,
             merge: .concatenate(separator: "\n\n"),
             outputTokenReserve: 50
         )
-        let budget = TokenBudget(tokenCounter: FakeAsyncTokenCounter(contextSize: 500))
+        let budget = TokenBudget(tokenCounter: StubAsyncTokenCounter(contextSize: 500))
         let input = String(repeating: "word ", count: 200)
         let chunks = try await budget.split(
             profile: profile,
@@ -154,11 +166,12 @@ final class TokenBudgetTests: XCTestCase {
     }
 
     func testAsyncSplitCalibratesWhenPromptCountsExceedHeuristic() async throws {
-        let budget = TokenBudget(tokenCounter: FakeAsyncTokenCounter(
+        let stub = StubAsyncTokenCounter(
             contextSize: 4096,
             promptScale: 1.35,
-            instructionsLength: 112
-        ))
+            fixedInstructionsLength: 112
+        )
+        let budget = TokenBudget(tokenCounter: stub)
         let profile = Transform.pirate.chunkingProfile
         let input = String(repeating: "Paragraph one.\n\n", count: 800)
         let chunks = try await budget.split(
@@ -172,20 +185,16 @@ final class TokenBudgetTests: XCTestCase {
             instructions: Transform.pirate.instructions
         )
         for chunk in chunks {
-            let count = try await FakeAsyncTokenCounter(
-                contextSize: 4096,
-                promptScale: 1.35,
-                instructionsLength: 112
-            ).tokenCount(forPrompt: chunk)
+            let count = try await stub.tokenCount(forPrompt: chunk)
             XCTAssertLessThanOrEqual(count, maxTokens)
         }
     }
 
     func testAsyncSplitThrowsWhenChunkExceedsBudget() async {
-        let budget = TokenBudget(tokenCounter: FakeAsyncTokenCounter(
+        let budget = TokenBudget(tokenCounter: StubAsyncTokenCounter(
             contextSize: 200,
-            defaultLength: 10,
-            counts: ["oversized": 5000]
+            defaultPromptLength: 10,
+            promptCounts: ["oversized": 5000]
         ))
         let profile = Transform.pirate.chunkingProfile
 
@@ -204,7 +213,7 @@ final class TokenBudgetTests: XCTestCase {
     }
 
     func testAsyncSplitReturnsInputWhenSplitterProducesNoChunks() async throws {
-        let budget = TokenBudget(tokenCounter: FakeAsyncTokenCounter())
+        let budget = TokenBudget(tokenCounter: StubAsyncTokenCounter())
         let profile = Transform.pirate.chunkingProfile
         let chunks = try await budget.split(
             profile: profile,
@@ -212,47 +221,5 @@ final class TokenBudgetTests: XCTestCase {
             input: ""
         )
         XCTAssertEqual(chunks, [""])
-    }
-}
-
-private struct FakeAsyncTokenCounter: AsyncTokenCounter {
-    private let backing: FixedTextLengthCounter
-    private let promptScale: Double
-    private let instructionsLength: Int?
-
-    init(
-        contextSize: Int = 4096,
-        defaultLength: Int = 10,
-        counts: [String: Int] = [:],
-        promptScale: Double = 1.0,
-        instructionsLength: Int? = nil
-    ) {
-        backing = FixedTextLengthCounter(
-            contextSize: contextSize,
-            defaultLength: defaultLength,
-            counts: counts
-        )
-        self.promptScale = promptScale
-        self.instructionsLength = instructionsLength
-    }
-
-    var contextSize: Int {
-        backing.contextSize
-    }
-
-    func tokenCount(forPrompt text: String) async throws -> Int {
-        if promptScale == 1.0 {
-            return backing.length(of: text)
-        }
-        return Int(ceil(
-            Double(HeuristicTextLengthCounter.estimatedTokenCount(for: text)) * promptScale
-        ))
-    }
-
-    func tokenCount(forInstructions text: String) async throws -> Int {
-        if let instructionsLength {
-            return instructionsLength
-        }
-        return backing.length(of: text)
     }
 }

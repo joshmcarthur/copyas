@@ -2,8 +2,12 @@
 import FoundationModels
 import XCTest
 
-/// Exercises live `SystemLanguageModel.tokenCount` when Apple Intelligence is available.
-/// Skips on CI runners and other hosts without a working on-device model.
+/// Optional live smoke tests against `SystemLanguageModel.tokenCount`.
+///
+/// Budget and split logic is covered without FM in `TokenBudgetTests` via `StubAsyncTokenCounter`
+/// and `FixedTextLengthCounter` / `HeuristicTextLengthCounter` (both conform to
+/// `AsyncTokenCounter`).
+/// These tests only run when Apple Intelligence is enabled on the host.
 final class FoundationModelsTokenCountTests: XCTestCase {
     func testContextSizeIs4096() throws {
         let model = try FoundationModelsTestSupport.requireAvailableModel()
@@ -18,7 +22,17 @@ final class FoundationModelsTokenCountTests: XCTestCase {
     }
 
     @available(macOS 26.4, *)
-    func testInstructionsAndPromptCountsDifferFromHeuristic() async throws {
+    func testInstructionsCountUsesInstructionsAPI() async throws {
+        let model = try await FoundationModelsTestSupport.requireTokenCounting()
+        let text = Transform.summary.instructions
+        let asPrompt = try await model.tokenCount(for: text)
+        let asInstructions = try await model.tokenCount(for: Instructions(text))
+        XCTAssertGreaterThan(asPrompt, 0)
+        XCTAssertGreaterThan(asInstructions, 0)
+    }
+
+    @available(macOS 26.4, *)
+    func testLiveCounterMatchesHeuristicBallpark() async throws {
         let model = try await FoundationModelsTestSupport.requireTokenCounting()
         let counter = FoundationModelsTokenCounter(model: model)
 
@@ -32,75 +46,5 @@ final class FoundationModelsTokenCountTests: XCTestCase {
             2.0,
             "FM instructions=\(fmInstructions) heuristic=\(heuristicInstructions)"
         )
-
-        let input = String(repeating: "word ", count: 500)
-        let heuristicInput = HeuristicTextLengthCounter.estimatedTokenCount(for: input)
-        let fmInput = try await counter.tokenCount(forPrompt: input)
-        XCTAssertGreaterThan(fmInput, 0)
-        XCTAssertLessThan(
-            abs(Double(fmInput) / Double(heuristicInput) - 1.0),
-            2.0,
-            "FM input=\(fmInput) heuristic=\(heuristicInput)"
-        )
-    }
-
-    @available(macOS 26.4, *)
-    func testInstructionsCountUsesInstructionsAPI() async throws {
-        let model = try await FoundationModelsTestSupport.requireTokenCounting()
-        let text = Transform.summary.instructions
-        let asPrompt = try await model.tokenCount(for: text)
-        let asInstructions = try await model.tokenCount(for: Instructions(text))
-        XCTAssertGreaterThan(asPrompt, 0)
-        XCTAssertGreaterThan(asInstructions, 0)
-    }
-
-    @available(macOS 26.4, *)
-    func testLiveBudgetFitsShortInput() async throws {
-        _ = try await FoundationModelsTestSupport.requireTokenCounting()
-        let budget = TokenBudget()
-        let profile = Transform.pirate.chunkingProfile
-        let fits = try await budget.fitsInOnePass(
-            profile: profile,
-            instructions: Transform.pirate.instructions,
-            input: "A short paragraph of text."
-        )
-        XCTAssertTrue(fits)
-    }
-
-    @available(macOS 26.4, *)
-    func testLiveBudgetDetectsLongInputNeedsChunking() async throws {
-        _ = try await FoundationModelsTestSupport.requireTokenCounting()
-        let budget = TokenBudget()
-        let profile = Transform.pirate.chunkingProfile
-        let input = String(repeating: "word ", count: 10000)
-        let fits = try await budget.fitsInOnePass(
-            profile: profile,
-            instructions: Transform.pirate.instructions,
-            input: input
-        )
-        XCTAssertFalse(fits)
-    }
-
-    @available(macOS 26.4, *)
-    func testLiveBudgetSplitUsesFMValidation() async throws {
-        let model = try await FoundationModelsTestSupport.requireTokenCounting()
-        let budget = TokenBudget(tokenCounter: FoundationModelsTokenCounter(model: model))
-        let profile = Transform.pirate.chunkingProfile
-        let input = String(repeating: "Paragraph one.\n\n", count: 800)
-        let chunks = try await budget.split(
-            profile: profile,
-            instructions: Transform.pirate.instructions,
-            input: input
-        )
-        XCTAssertGreaterThan(chunks.count, 1)
-        for chunk in chunks {
-            let count = try await FoundationModelsTokenCounter(model: model)
-                .tokenCount(forPrompt: chunk)
-            let maxTokens = try await budget.maxInputTokens(
-                profile: profile,
-                instructions: Transform.pirate.instructions
-            )
-            XCTAssertLessThanOrEqual(count, maxTokens, "chunk exceeded budget after FM validation")
-        }
     }
 }
