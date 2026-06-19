@@ -1,0 +1,75 @@
+{
+  "generator": "Scripts/generate-splitter-fixtures.py",
+  "langchain_package": "langchain-text-splitters",
+  "fixtures": [
+    {
+      "name": "short_single_paragraph",
+      "chunk_size": 250,
+      "chunk_overlap": 0,
+      "separators": [
+        "\n\n",
+        "\n",
+        " ",
+        ""
+      ],
+      "input": "This is a short paragraph that fits in one chunk.",
+      "chunks": [
+        "This is a short paragraph that fits in one chunk."
+      ]
+    },
+    {
+      "name": "multiparagraph_no_overlap",
+      "chunk_size": 80,
+      "chunk_overlap": 0,
+      "separators": [
+        "\n\n",
+        "\n",
+        " ",
+        ""
+      ],
+      "input": "First paragraph with enough text to force a split when chunk size is small.\n\nSecond paragraph continues the document with more content for testing.\n\nThird paragraph wraps up the sample input for golden fixture generation.",
+      "chunks": [
+        "First paragraph with enough text to force a split when chunk size is small.",
+        "Second paragraph continues the document with more content for testing.",
+        "Third paragraph wraps up the sample input for golden fixture generation."
+      ]
+    },
+    {
+      "name": "multiparagraph_overlap",
+      "chunk_size": 100,
+      "chunk_overlap": 20,
+      "separators": [
+        "\n\n",
+        "\n",
+        " ",
+        ""
+      ],
+      "input": "Alpha paragraph one has several words to exceed the chunk limit.\n\nBeta paragraph two adds more text across the boundary.\n\nGamma paragraph three completes the overlap fixture.",
+      "chunks": [
+        "Alpha paragraph one has several words to exceed the chunk limit.",
+        "Beta paragraph two adds more text across the boundary.",
+        "Gamma paragraph three completes the overlap fixture."
+      ]
+    },
+    {
+      "name": "long_unbreakable_word",
+      "chunk_size": 10,
+      "chunk_overlap": 0,
+      "separators": [
+        "\n\n",
+        "\n",
+        " ",
+        ""
+      ],
+      "input": "prefix supercalifragilisticexpialidocious suffix",
+      "chunks": [
+        "prefix",
+        "supercali",
+        "fragilisti",
+        "cexpialido",
+        "cious",
+        "suffix"
+      ]
+    }
+  ]
+}

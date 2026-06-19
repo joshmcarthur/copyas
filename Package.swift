@@ -7,11 +7,16 @@ let package = Package(
     products: [
         .executable(name: "copyas", targets: ["CopyasCLI"]),
         .executable(name: "CopyasMenuBar", targets: ["CopyasMenuBar"]),
+        .library(name: "RecursiveTextSplit", targets: ["RecursiveTextSplit"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
     ],
     targets: [
+        .target(
+            name: "RecursiveTextSplit",
+            path: "Sources/RecursiveTextSplit"
+        ),
         .target(
             name: "Copyas",
             dependencies: [
@@ -34,6 +39,12 @@ let package = Package(
                 .linkedFramework("SwiftUI"),
                 .linkedFramework("UserNotifications"),
             ]
+        ),
+        .testTarget(
+            name: "RecursiveTextSplitTests",
+            dependencies: ["RecursiveTextSplit"],
+            path: "Tests/RecursiveTextSplitTests",
+            resources: [.process("Fixtures")]
         ),
         .testTarget(
             name: "CopyasTests",
