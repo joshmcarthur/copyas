@@ -124,6 +124,33 @@ final class ChunkedGeneratorTests: XCTestCase {
         }
     }
 
+    func testMapReduceRejectsConcatenateMergeStrategy() async {
+        let budget = SynchronousTokenBudget(counter: FixedTextLengthCounter())
+        let profile = TransformChunkingProfile(
+            mode: .mapReduce,
+            merge: .concatenate(separator: "\n"),
+            outputTokenReserve: 0
+        )
+
+        do {
+            _ = try await ChunkedGenerator.generate(
+                profile: profile,
+                mapInstructions: "map",
+                input: "hello",
+                budget: budget,
+                onPartial: nil
+            ) { _, _, _ in "out" }
+            XCTFail("expected invalid merge strategy error")
+        } catch let error as GenerationError {
+            XCTAssertEqual(
+                error,
+                .generationFailed("invalid merge strategy for map-reduce transform")
+            )
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
+
     func testMapReduceThrowsWhenCollapseDepthExceeded() async {
         let budget = SynchronousTokenBudget(
             counter: FixedTextLengthCounter(contextSize: 200, defaultLength: 80)

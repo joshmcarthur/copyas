@@ -47,7 +47,7 @@ fi
 coverage_report="$(
     xcrun llvm-cov report "${test_binary}" \
         -instr-profile "${profile_path}" \
-        -ignore-filename-regex="(/Tests/|/\\.build/|/Sources/CopyasCLI/|/Sources/Copyas/Model/LiveModelClient\\.swift$)"
+        -ignore-filename-regex="(/Tests/|/\\.build/|/Sources/CopyasCLI/|/Sources/Copyas/Model/LiveModelClient\\.swift$|/Sources/Copyas/Model/FoundationModelsTokenCounter\\.swift$)"
 )"
 
 printf "%s\n" "${coverage_report}"
