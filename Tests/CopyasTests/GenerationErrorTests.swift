@@ -21,7 +21,7 @@ final class GenerationErrorTests: XCTestCase {
         )
         XCTAssertEqual(
             GenerationError.contextWindowExceeded.message,
-            "error: clipboard text is too long to transform in one pass; try with shorter text"
+            "error: text is too long even after splitting; try with shorter text"
         )
     }
 

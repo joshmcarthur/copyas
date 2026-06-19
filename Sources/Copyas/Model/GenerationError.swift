@@ -61,7 +61,7 @@ public enum GenerationError: Error, Equatable {
         case .contentBlocked:
             "generation blocked by Apple Intelligence safety guardrails"
         case .contextWindowExceeded:
-            "clipboard text is too long to transform in one pass; try with shorter text"
+            "text is too long even after splitting; try with shorter text"
         case let .generationFailed(message):
             "generation failed: \(message)"
         }

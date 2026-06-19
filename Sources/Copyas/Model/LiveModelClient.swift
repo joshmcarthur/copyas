@@ -2,7 +2,11 @@ import Foundation
 import FoundationModels
 
 public struct LiveModelClient: ModelClient {
-    public init() {}
+    private let budget: TokenBudget
+
+    public init(budget: TokenBudget = TokenBudget()) {
+        self.budget = budget
+    }
 
     public func checkAvailability() throws {
         switch SystemLanguageModel.default.availability {
@@ -25,23 +29,39 @@ public struct LiveModelClient: ModelClient {
         onPartial: (@Sendable (String) -> Void)?
     ) async throws -> String {
         do {
-            let session = makeSession(transform: transform)
-            if let onPartial {
-                return try await generateStreaming(
-                    session: session,
+            let profile = transform.chunkingProfile
+            if try await budget.fitsInOnePass(
+                profile: profile,
+                instructions: transform.instructions,
+                input: input
+            ) {
+                return try await generateSinglePass(
+                    instructions: transform.instructions,
                     input: input,
                     onPartial: onPartial
                 )
             }
-            let response = try await session.respond(to: input)
-            return try TransformOutput.parse(response.content)
+            return try await ChunkedGenerator.generate(
+                profile: profile,
+                mapInstructions: transform.instructions,
+                input: input,
+                budget: budget,
+                onPartial: onPartial,
+                generateChunk: { instructions, chunk, partial in
+                    try await generateSinglePass(
+                        instructions: instructions,
+                        input: chunk,
+                        onPartial: partial
+                    )
+                }
+            )
         } catch {
             throw FoundationModelsErrorMapper.map(error)
         }
     }
 
     public func prewarm(transform: Transform) {
-        makeSession(transform: transform).prewarm()
+        makeSession(instructions: transform.instructions).prewarm()
     }
 
     public func prewarmAllTransforms() {
@@ -50,10 +70,27 @@ public struct LiveModelClient: ModelClient {
         }
     }
 
-    private func makeSession(transform: Transform) -> LanguageModelSession {
+    private func generateSinglePass(
+        instructions: String,
+        input: String,
+        onPartial: (@Sendable (String) -> Void)?
+    ) async throws -> String {
+        let session = makeSession(instructions: instructions)
+        if let onPartial {
+            return try await generateStreaming(
+                session: session,
+                input: input,
+                onPartial: onPartial
+            )
+        }
+        let response = try await session.respond(to: input)
+        return try TransformOutput.parse(response.content)
+    }
+
+    private func makeSession(instructions: String) -> LanguageModelSession {
         LanguageModelSession(
             model: SystemLanguageModel.default,
-            instructions: transform.instructions
+            instructions: instructions
         )
     }
 

@@ -49,7 +49,7 @@ final class FoundationModelsErrorMapperTests: XCTestCase {
         XCTAssertEqual(FoundationModelsErrorMapper.map(error), .contextWindowExceeded)
         XCTAssertEqual(
             GenerationError.contextWindowExceeded.userFacingMessage,
-            "clipboard text is too long to transform in one pass; try with shorter text"
+            "text is too long even after splitting; try with shorter text"
         )
     }
 
