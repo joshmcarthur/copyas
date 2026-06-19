@@ -35,27 +35,17 @@ final class TokenBudgetTests: XCTestCase {
         XCTAssertEqual(estimate, 3)
     }
 
-    func testAsyncBudgetFitsInOnePass() async throws {
-        let budget = TokenBudget()
-        let profile = Transform.pirate.chunkingProfile
-        let fits = try await budget.fitsInOnePass(
-            profile: profile,
-            instructions: "brief",
-            input: "short text"
-        )
-        XCTAssertTrue(fits)
-    }
-
-    func testAsyncBudgetDetectsLongInputNeedsChunking() async throws {
-        let budget = TokenBudget()
+    func testLongInputNeedsChunkingWithHeuristicCounter() {
+        let budget = SynchronousTokenBudget(counter: HeuristicTextLengthCounter())
         let profile = Transform.pirate.chunkingProfile
         let input = String(repeating: "word ", count: 10000)
-        let fits = try await budget.fitsInOnePass(
-            profile: profile,
-            instructions: Transform.pirate.instructions,
-            input: input
+        XCTAssertFalse(
+            budget.fitsInOnePass(
+                profile: profile,
+                instructions: Transform.pirate.instructions,
+                input: input
+            )
         )
-        XCTAssertFalse(fits)
     }
 
     func testContainsWithinBudget() {
@@ -100,15 +90,5 @@ final class TokenBudgetTests: XCTestCase {
     func testHeuristicCJKUsesCharacterCount() {
         let estimate = HeuristicTextLengthCounter.estimatedTokenCount(for: "你好世界")
         XCTAssertEqual(estimate, 4)
-    }
-
-    func testAsyncFitsInBudget() async throws {
-        let budget = TokenBudget()
-        let fits = try await budget.fitsInBudget(
-            instructions: "brief",
-            input: "short",
-            outputReserve: 50
-        )
-        XCTAssertTrue(fits)
     }
 }

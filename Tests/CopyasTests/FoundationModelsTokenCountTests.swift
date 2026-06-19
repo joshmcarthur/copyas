@@ -3,31 +3,23 @@ import FoundationModels
 import XCTest
 
 /// Exercises live `SystemLanguageModel.tokenCount` when Apple Intelligence is available.
-/// Skips quietly on CI simulators or when the model is unavailable.
+/// Skips on CI runners and other hosts without a working on-device model.
 final class FoundationModelsTokenCountTests: XCTestCase {
-    private func requireAvailableModel() throws -> SystemLanguageModel {
-        let model = SystemLanguageModel.default
-        guard case .available = model.availability else {
-            throw XCTSkip("SystemLanguageModel unavailable: \(model.availability)")
-        }
-        return model
-    }
-
     func testContextSizeIs4096() throws {
-        let model = try requireAvailableModel()
+        let model = try FoundationModelsTestSupport.requireAvailableModel()
         XCTAssertEqual(model.contextSize, 4096)
     }
 
     @available(macOS 26.4, *)
     func testTokenCountAPIAvailableOnSupportedOS() async throws {
-        let model = try requireAvailableModel()
+        let model = try await FoundationModelsTestSupport.requireTokenCounting()
         let count = try await model.tokenCount(for: "hello")
         XCTAssertGreaterThan(count, 0)
     }
 
     @available(macOS 26.4, *)
     func testInstructionsAndPromptCountsDifferFromHeuristic() async throws {
-        let model = try requireAvailableModel()
+        let model = try await FoundationModelsTestSupport.requireTokenCounting()
         let counter = FoundationModelsTokenCounter(model: model)
 
         let pirateInstructions = Transform.pirate.instructions
@@ -35,7 +27,6 @@ final class FoundationModelsTokenCountTests: XCTestCase {
             .estimatedTokenCount(for: pirateInstructions)
         let fmInstructions = try await counter.tokenCount(forInstructions: pirateInstructions)
         XCTAssertGreaterThan(fmInstructions, 0)
-        // Heuristic should be in the same ballpark (within 3×) for Latin instructions.
         XCTAssertLessThan(
             abs(Double(fmInstructions) / Double(heuristicInstructions) - 1.0),
             2.0,
@@ -55,18 +46,17 @@ final class FoundationModelsTokenCountTests: XCTestCase {
 
     @available(macOS 26.4, *)
     func testInstructionsCountUsesInstructionsAPI() async throws {
-        let model = try requireAvailableModel()
+        let model = try await FoundationModelsTestSupport.requireTokenCounting()
         let text = Transform.summary.instructions
         let asPrompt = try await model.tokenCount(for: text)
         let asInstructions = try await model.tokenCount(for: Instructions(text))
-        // Same bytes may tokenize differently by role; we only require both are positive.
         XCTAssertGreaterThan(asPrompt, 0)
         XCTAssertGreaterThan(asInstructions, 0)
     }
 
     @available(macOS 26.4, *)
     func testLiveBudgetFitsShortInput() async throws {
-        _ = try requireAvailableModel()
+        _ = try await FoundationModelsTestSupport.requireTokenCounting()
         let budget = TokenBudget()
         let profile = Transform.pirate.chunkingProfile
         let fits = try await budget.fitsInOnePass(
@@ -78,9 +68,23 @@ final class FoundationModelsTokenCountTests: XCTestCase {
     }
 
     @available(macOS 26.4, *)
-    func testLiveBudgetSplitUsesFMValidation() async throws {
-        _ = try requireAvailableModel()
+    func testLiveBudgetDetectsLongInputNeedsChunking() async throws {
+        _ = try await FoundationModelsTestSupport.requireTokenCounting()
         let budget = TokenBudget()
+        let profile = Transform.pirate.chunkingProfile
+        let input = String(repeating: "word ", count: 10000)
+        let fits = try await budget.fitsInOnePass(
+            profile: profile,
+            instructions: Transform.pirate.instructions,
+            input: input
+        )
+        XCTAssertFalse(fits)
+    }
+
+    @available(macOS 26.4, *)
+    func testLiveBudgetSplitUsesFMValidation() async throws {
+        let model = try await FoundationModelsTestSupport.requireTokenCounting()
+        let budget = TokenBudget(tokenCounter: FoundationModelsTokenCounter(model: model))
         let profile = Transform.pirate.chunkingProfile
         let input = String(repeating: "Paragraph one.\n\n", count: 800)
         let chunks = try await budget.split(
@@ -90,7 +94,8 @@ final class FoundationModelsTokenCountTests: XCTestCase {
         )
         XCTAssertGreaterThan(chunks.count, 1)
         for chunk in chunks {
-            let count = try await FoundationModelsTokenCounter().tokenCount(forPrompt: chunk)
+            let count = try await FoundationModelsTokenCounter(model: model)
+                .tokenCount(forPrompt: chunk)
             let maxTokens = try await budget.maxInputTokens(
                 profile: profile,
                 instructions: Transform.pirate.instructions
