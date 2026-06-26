@@ -11,10 +11,14 @@ struct MenuContentView: View {
             Divider()
         }
 
-        ForEach(Transform.allCases, id: \.self) { transform in
+        ForEach(Array(Transform.allCases.enumerated()), id: \.element) { index, transform in
             Button(TransformPresentation.menuTitle(for: transform)) {
                 appState.transform(transform)
             }
+            .keyboardShortcut(
+                KeyEquivalent(Character("\(index + 1)")),
+                modifiers: .command
+            )
             .disabled(!appState.transformsEnabled)
         }
 
