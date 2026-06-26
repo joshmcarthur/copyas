@@ -33,9 +33,9 @@ The binary is at `.build/release/copyas`. Add it to your `PATH` or symlink it:
 ln -sf "$(pwd)/.build/release/copyas" /usr/local/bin/copyas
 ```
 
-### Menubar app
+### Menubar app vs CLI
 
-**Copyas** also ships as a minimal menubar app — a clipboard-first UI for the same transforms. Copy text, pick a transform from the menu, and the result is written back to the clipboard with a notification.
+The menubar app uses the same transforms and model pipeline but is **clipboard-only**: no `--stdin`, `--write`, or `--no-stream`. Pick a transform from the menu; the result replaces the clipboard and a notification is shown.
 
 Build and run:
 
@@ -55,18 +55,23 @@ cp -R dist/Copyas.app ~/Applications/
 ### Usage
 
 ```text
-copyas TRANSFORM [--stdin] [--write] [--no-stream] [--help] [--version]
-copyas TRANSFORM [--stdin] [-w] [--no-stream] [-h] [-v]
+copyas <transform> [--stdin] [--write] [--no-stream]
 ```
 
-| Argument / flag | Description |
-|-----------------|-------------|
-| `TRANSFORM` | Transform to apply: `summary`, `markdown`, `pirate` |
-| `--stdin` | Read from stdin instead of clipboard (for pipes and file redirection) |
-| `-w`, `--write` | Write result to clipboard instead of stdout |
-| `--no-stream` | Buffer the full response before writing to stdout |
-| `-h`, `--help` | Show usage |
-| `-v`, `--version` | Show version |
+Run `copyas --help` for full usage. Current version: `0.1.0` (`copyas --version` or `copyas -v`).
+
+| Argument / flag | Short | Description |
+|-----------------|-------|-------------|
+| `transform` | — | **Required.** Transform to apply: `summary`, `markdown`, or `pirate` (case-insensitive) |
+| `--stdin` | — | Read input from stdin instead of the clipboard |
+| `--write` | `-w` | Write result to the clipboard instead of stdout (stdout stays silent on success) |
+| `--no-stream` | — | Buffer the full response before writing stdout (ignored with `-w`, which always buffers) |
+| `--help` | `-h` | Show usage |
+| `--version` | `-v` | Show version |
+
+**Input:** With `--stdin`, reads all of stdin until EOF (UTF-8). Otherwise reads the general pasteboard string. Trailing whitespace is trimmed; leading whitespace is preserved.
+
+**Output:** Errors go to stderr. Transformed text goes to stdout (streamed by default) or the clipboard with `-w`.
 
 ### Transforms
 
@@ -93,28 +98,35 @@ cat draft.txt | copyas markdown --stdin | tee formatted.md
 
 # Buffer the full response before writing stdout (for scripts expecting one write)
 copyas summary --stdin --no-stream < report.txt
+
+# Pirate speak via pipe
+echo "Hello, world!" | copyas pirate --stdin
+
+# Unknown transform → exit 64
+copyas lolcat
 ```
 
 ### Output behaviour
 
 By default, stdout mode **streams** the transformed text as the model generates it. Use `--no-stream` to wait for the full response before writing stdout. Clipboard mode (`-w`) always buffers the complete result.
 
-Long clipboard text is split automatically when it exceeds the on-device context window. Chunking uses a LangChain-compatible splitter (`RecursiveTextSplit`); transforms declare how chunks are merged (concatenate for rewrite transforms, map-reduce for `summary`).
-
-Errors are printed to **stderr**. Transformed text goes to **stdout** by default (streamed), or to the clipboard with `-w` (stdout stays silent on success).
+Long input is split automatically when it exceeds the on-device context window (4,096 tokens). Chunking uses a LangChain-compatible splitter (`RecursiveTextSplit`); transforms declare how chunks are merged (concatenate for `markdown` / `pirate`, map-reduce for `summary`).
 
 ### Exit codes
 
 | Code | Meaning |
 |------|---------|
 | `0` | Success |
-| `1` | Generation, clipboard write, or internal error |
+| `1` | Generation failed, content blocked, context window exceeded (even after chunking), or clipboard write failed |
 | `2` | Device not eligible for Apple Intelligence |
 | `3` | Apple Intelligence not enabled |
-| `4` | Model not ready |
+| `4` | Model not ready (or model assets unavailable) |
 | `5` | Model unavailable (other) |
 | `6` | No input text |
-| `64` | Invalid usage (missing/unknown transform) |
+| `7` | Input unsuitable (no meaningful text to transform) |
+| `64` | Invalid usage (missing or unknown transform) |
+
+Errors are printed to stderr as `error: …` (e.g. `error: unknown transform "lolcat"`).
 
 ### Formatting
 
@@ -135,7 +147,7 @@ swift build -Xswiftc -warnings-as-errors
 
 1. Read the executable spec: [`docs/SPEC.md`](docs/SPEC.md)
 2. Make focused changes aligned with one logical commit
-3. Run `swiftformat .` and `swift build`
+3. Run `swiftformat .`, `swift build`, and `swift test`
 4. Review your diff before committing
 5. Use imperative, semantic commit messages (e.g. `feat(cli): add clipboard-first CLI`)
 
@@ -171,7 +183,7 @@ This section is for coding agents (Cursor, Claude Code, etc.) implementing or ex
 | Model | `FoundationModels`: `SystemLanguageModel.default`, `LanguageModelSession` |
 | Clipboard | `NSPasteboard.general` via AppKit (macOS only) |
 | Transforms | Enum + instruction strings; case-insensitive lookup |
-| Testing | Manual verification on AI-enabled Mac; mock `ModelClient` only if tests are requested |
+| Testing | `swift test`; live Foundation Models tests skip on hosts without Apple Intelligence |
 
 ### Commit message format
 
@@ -205,12 +217,14 @@ When starting from an empty repo, expect at minimum:
 copyas/
 ├── Package.swift
 ├── README.md
-├── docs/
-│   └── SPEC.md
-├── .gitignore
-├── .swiftformat
-└── Sources/copyas/
-    └── … (see SPEC §6.1)
+├── docs/SPEC.md
+├── Scripts/
+├── Sources/
+│   ├── Copyas/          # Core library (CLI, model, transforms)
+│   ├── CopyasCLI/       # `copyas` executable
+│   ├── CopyasMenuBar/   # Menubar app
+│   └── RecursiveTextSplit/
+└── Tests/
 ```
 
 ---
