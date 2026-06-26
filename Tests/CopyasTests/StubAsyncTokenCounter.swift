@@ -1,5 +1,5 @@
-import Foundation
 @testable import Copyas
+import Foundation
 
 /// Stub `AsyncTokenCounter` for unit tests. Inject into `TokenBudget` instead of
 /// `FoundationModelsTokenCounter` when Apple Intelligence is unavailable (e.g. CI).
