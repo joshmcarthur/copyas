@@ -39,7 +39,7 @@ It is designed for shell pipelines, clipboard workflows, and automation — not 
 - Windows or Linux support
 - Interactive TUI
 - Custom / user-defined transforms (future work)
-- Network calls or third-party LLM APIs (v0.1 uses on-device model only)
+- Network calls or third-party LLM APIs (uses Apple Foundation Models only; PCC via Apple's `fm` tool when available)
 - Writing to both stdout and clipboard simultaneously
 
 ### Menubar companion (optional)
@@ -55,7 +55,7 @@ A minimal **Copyas** menubar app may ship alongside the CLI. It is a clipboard-o
 | Language | Swift 6.x |
 | Build | Swift Package Manager (`Package.swift`) |
 | Framework | `FoundationModels` (Apple) |
-| Minimum OS | macOS 26.0 (Tahoe) — adjust only if build verification proves otherwise |
+| Minimum OS | macOS 27.0 — adjust only if build verification proves otherwise |
 | Device | Apple Intelligence–capable Mac; model availability checked at runtime |
 | Clipboard | `AppKit` (`NSPasteboard`) — macOS only |
 
@@ -70,6 +70,9 @@ Before invoking the model, check `SystemLanguageModel.default.availability`. Map
 | `.unavailable(.appleIntelligenceNotEnabled)` | `3` | `error: enable Apple Intelligence in System Settings` |
 | `.unavailable(.modelNotReady)` | `4` | `error: language model is not ready` |
 | `.unavailable(_)` (other) | `5` | `error: language model unavailable` |
+| PCC requested but `/usr/bin/fm` missing | `5` | `error: Private Cloud Compute is not available on this Mac` |
+
+`--cloud` and `--local` MUST NOT be used together; exit `64` with a validation error.
 
 Empty input MUST exit `6` with `error: no input text`.
 
@@ -84,7 +87,7 @@ General generation failure MUST exit `1` with a concise stderr message.
 ### 4.1 Invocation
 
 ```text
-copyas TRANSFORM [--stdin] [--write | -w] [--no-stream] [--help | -h] [--version | -v]
+copyas TRANSFORM [--stdin] [--write | -w] [--no-stream] [--cloud] [--local] [--help | -h] [--version | -v]
 ```
 
 | Argument / flag | Short | Required | Description |
@@ -93,6 +96,8 @@ copyas TRANSFORM [--stdin] [--write | -w] [--no-stream] [--help | -h] [--version
 | `--stdin` | — | No | Read input from stdin instead of clipboard |
 | `--write` | `-w` | No | Write result to clipboard instead of stdout |
 | `--no-stream` | — | No | Buffer the full response before writing to stdout |
+| `--cloud` | — | No | Use Private Cloud Compute via `/usr/bin/fm` (fail if unavailable) |
+| `--local` | — | No | Force on-device model only |
 | `--help` | `-h` | No | Print usage; exit `0` |
 | `--version` | `-v` | No | Print name and version; exit `0` |
 
@@ -243,23 +248,35 @@ When adding a transform, decide: global context needed? → `mapReduce`. Output 
 | `Sources/copyas/Transform/Transform.swift` | Transform enum + metadata |
 | `Sources/copyas/Transform/TransformRegistry.swift` | Lookup + validation |
 | `Sources/copyas/Model/ModelClient.swift` | Availability check + `LanguageModelSession` |
+| `Sources/copyas/Model/ModelBackend.swift` | On-device vs PCC backend |
+| `Sources/copyas/Model/ModelResolver.swift` | Model preference resolution |
 | `Sources/copyas/Model/GenerationError.swift` | Typed errors → exit codes |
 
 Keep files focused; split further only when a file exceeds ~200 lines or mixes unrelated concerns.
 
 ### 6.2 Model session
 
-Use `SystemLanguageModel.default` and `LanguageModelSession` from Foundation Models.
+`LiveModelClient` resolves a `ModelBackend` via `ModelResolver`:
+
+| Preference | Behaviour |
+|------------|-----------|
+| Automatic (default) | Use Private Cloud Compute when `/usr/bin/fm` is executable; otherwise on-device |
+| `--cloud` | Require PCC (`FMToolLanguageModel` via [TwoMillionKit](https://github.com/insidegui/TwoMillionKit)) |
+| `--local` | On-device `SystemLanguageModel.default` only |
+
+Use `LanguageModelSession` from Foundation Models with the resolved backend's `LanguageModel`.
 
 Pattern:
 
-1. Check availability (§3).
-2. Create session (reuse default model; pass transform-specific instructions via session instructions).
-3. For stdout streaming (default): call `streamResponse(to:)`, emit incremental deltas to stdout, then `collect()` for the final response.
-4. For buffered output (`--no-stream` or `--write` / `-w`): call `respond(to:)`.
+1. Check availability (§3; on-device checks apply only for the local backend).
+2. Create session (pass transform-specific instructions via session instructions).
+3. For stdout streaming (default, on-device only): call `streamResponse(to:)`, emit incremental deltas to stdout, then `collect()` for the final response.
+4. For buffered output (`--no-stream`, `--write` / `-w`, or PCC backend): call `respond(to:)`. PCC emits the full response in one partial callback when streaming was requested.
 5. Return generated string after `TransformOutput.parse`.
 
 Session instructions SHOULD encode the transform system prompt; user content SHOULD be the input text.
+
+Prewarm is a no-op for the PCC backend.
 
 #### Long-input chunking
 
@@ -278,7 +295,8 @@ Failure: if a single semantic chunk still exceeds the budget after splitting, ex
 | Package | Use |
 |---------|-----|
 | [swift-argument-parser](https://github.com/apple/swift-argument-parser) | CLI parsing |
-| Apple `FoundationModels` | On-device generation |
+| [TwoMillionKit](https://github.com/insidegui/TwoMillionKit) | Private Cloud Compute via `fm` |
+| Apple `FoundationModels` | On-device and session API |
 
 No other runtime dependencies in v0.1.
 

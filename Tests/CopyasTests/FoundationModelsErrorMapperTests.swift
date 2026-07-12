@@ -1,5 +1,6 @@
 @testable import Copyas
 import Foundation
+import TwoMillionKit
 import XCTest
 
 final class FoundationModelsErrorMapperTests: XCTestCase {
@@ -70,6 +71,26 @@ final class FoundationModelsErrorMapperTests: XCTestCase {
         XCTAssertEqual(
             FoundationModelsErrorMapper.map(error),
             .generationFailed(String(describing: error))
+        )
+    }
+
+    func testMapsFMToolExecutableNotFoundToCloudModelUnavailable() {
+        let error = FMToolLanguageModelError.executableNotFound(
+            URL(fileURLWithPath: "/usr/bin/fm")
+        )
+
+        XCTAssertEqual(FoundationModelsErrorMapper.map(error), .cloudModelUnavailable)
+    }
+
+    func testMapsFMToolProcessFailedToGenerationFailed() {
+        let error = FMToolLanguageModelError.processFailed(
+            status: 1,
+            message: "PCC unavailable"
+        )
+
+        XCTAssertEqual(
+            FoundationModelsErrorMapper.map(error),
+            .generationFailed("PCC unavailable")
         )
     }
 

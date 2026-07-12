@@ -8,6 +8,11 @@ public enum CopyasApp {
             let command = try CopyasCommand.parse(arguments)
             let options = command.options
 
+            var runtimeEnvironment = environment
+            if options.useCloud || options.useLocal {
+                runtimeEnvironment.modelClient = try LiveModelClient(preference: options.modelPreference)
+            }
+
             guard let transform = Transform.named(options.transform) else {
                 throw GenerationError.unknownTransform(options.transform)
             }
@@ -20,7 +25,7 @@ public enum CopyasApp {
             _ = try await TransformExecutor.run(
                 transform: transform,
                 configuration: configuration,
-                environment: environment
+                environment: runtimeEnvironment
             )
             return 0
         } catch {

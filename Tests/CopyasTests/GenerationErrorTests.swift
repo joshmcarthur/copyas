@@ -33,6 +33,7 @@ final class GenerationErrorTests: XCTestCase {
         XCTAssertEqual(GenerationError.appleIntelligenceNotEnabled.exitCode, 3)
         XCTAssertEqual(GenerationError.modelNotReady.exitCode, 4)
         XCTAssertEqual(GenerationError.modelUnavailable.exitCode, 5)
+        XCTAssertEqual(GenerationError.cloudModelUnavailable.exitCode, 5)
         XCTAssertEqual(GenerationError.clipboardWriteFailed.exitCode, 1)
         XCTAssertEqual(GenerationError.contentBlocked.exitCode, 1)
         XCTAssertEqual(GenerationError.contextWindowExceeded.exitCode, 1)

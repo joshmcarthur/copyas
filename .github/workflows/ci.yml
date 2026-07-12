@@ -15,7 +15,7 @@ concurrency:
 jobs:
   test:
     name: Test and coverage
-    runs-on: macos-26
+    runs-on: macos-27
     permissions:
       contents: read
 

@@ -1,9 +1,14 @@
 import Foundation
+import TwoMillionKit
 
 enum FoundationModelsErrorMapper {
     static func map(_ error: Error) -> GenerationError {
         if let generationError = error as? GenerationError {
             return generationError
+        }
+
+        if let fmError = error as? FMToolLanguageModelError {
+            return mapFMToolError(fmError)
         }
 
         if containsGuardrailViolation(error) {
@@ -19,6 +24,19 @@ enum FoundationModelsErrorMapper {
         }
 
         return .generationFailed(String(describing: error))
+    }
+
+    private static func mapFMToolError(_ error: FMToolLanguageModelError) -> GenerationError {
+        switch error {
+        case .executableNotFound:
+            .cloudModelUnavailable
+        case let .processFailed(_, message):
+            .generationFailed(message)
+        case let .invalidRequest(reason):
+            .generationFailed(reason)
+        case .invalidUTF8Output:
+            .generationFailed("the fm command-line tool returned output that is not valid UTF-8")
+        }
     }
 
     private static func containsContextWindowExceeded(_ error: Error) -> Bool {

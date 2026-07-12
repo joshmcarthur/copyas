@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "copyas",
-    platforms: [.macOS(.v26)],
+    platforms: [.macOS(.v27)],
     products: [
         .executable(name: "copyas", targets: ["CopyasCLI"]),
         .executable(name: "CopyasMenuBar", targets: ["CopyasMenuBar"]),
@@ -11,6 +11,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-argument-parser", from: "1.3.0"),
+        .package(url: "https://github.com/insidegui/TwoMillionKit", branch: "main"),
     ],
     targets: [
         .target(
@@ -22,6 +23,7 @@ let package = Package(
             dependencies: [
                 "RecursiveTextSplit",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "TwoMillionKit", package: "TwoMillionKit"),
             ],
             linkerSettings: [
                 .linkedFramework("FoundationModels"),

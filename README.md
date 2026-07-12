@@ -11,7 +11,7 @@ copyas summary --stdin < report.txt
 
 ## Requirements
 
-- macOS 26+ (Apple Intelligence–capable Mac)
+- macOS 27+ (Apple Intelligence–capable Mac)
 - Apple Intelligence enabled in System Settings
 - Xcode 26+ or Swift 6 toolchain
 
@@ -55,7 +55,7 @@ cp -R dist/Copyas.app ~/Applications/
 ### Usage
 
 ```text
-copyas <transform> [--stdin] [--write] [--no-stream]
+copyas <transform> [--stdin] [--write] [--no-stream] [--cloud] [--local]
 ```
 
 Run `copyas --help` for full usage. Current version: `0.1.0` (`copyas --version` or `copyas -v`).
@@ -66,12 +66,20 @@ Run `copyas --help` for full usage. Current version: `0.1.0` (`copyas --version`
 | `--stdin` | — | Read input from stdin instead of the clipboard |
 | `--write` | `-w` | Write result to the clipboard instead of stdout (stdout stays silent on success) |
 | `--no-stream` | — | Buffer the full response before writing stdout (ignored with `-w`, which always buffers) |
+| `--cloud` | — | Use Private Cloud Compute via the `fm` command-line tool (macOS 27+) |
+| `--local` | — | Force the on-device model only |
 | `--help` | `-h` | Show usage |
 | `--version` | `-v` | Show version |
 
 **Input:** With `--stdin`, reads all of stdin until EOF (UTF-8). Otherwise reads the general pasteboard string. Trailing whitespace is trimmed; leading whitespace is preserved.
 
-**Output:** Errors go to stderr. Transformed text goes to stdout (streamed by default) or the clipboard with `-w`.
+**Output:** Errors go to stderr. Transformed text goes to stdout (streamed by default for on-device) or the clipboard with `-w`.
+
+### Model selection
+
+By default, copyas uses **Private Cloud Compute** when `/usr/bin/fm` is available (macOS 27+), otherwise the on-device Apple Foundation Model. Override with `--cloud` (require PCC) or `--local` (on-device only). `--cloud` and `--local` cannot be used together.
+
+Private Cloud Compute is provided via [TwoMillionKit](https://github.com/insidegui/TwoMillionKit), which shells out to Apple's `fm` tool. Use sparingly and at your own risk. PCC requires an unsandboxed app; sandboxed Mac App Store builds cannot use it. The PCC path buffers the full response (no incremental stdout streaming).
 
 ### Transforms
 
@@ -121,7 +129,7 @@ Long input is split automatically when it exceeds the on-device context window (
 | `2` | Device not eligible for Apple Intelligence |
 | `3` | Apple Intelligence not enabled |
 | `4` | Model not ready (or model assets unavailable) |
-| `5` | Model unavailable (other) |
+| `5` | Model unavailable, or Private Cloud Compute unavailable when `--cloud` is set |
 | `6` | No input text |
 | `7` | Input unsuitable (no meaningful text to transform) |
 | `64` | Invalid usage (missing or unknown transform) |
@@ -180,7 +188,7 @@ This section is for coding agents (Cursor, Claude Code, etc.) implementing or ex
 |------|----------|
 | Package layout | SwiftPM executable target; see SPEC §6.1 |
 | CLI | Prefer [swift-argument-parser](https://github.com/apple/swift-argument-parser) |
-| Model | `FoundationModels`: `SystemLanguageModel.default`, `LanguageModelSession` |
+| Model | `FoundationModels` via on-device `SystemLanguageModel` or PCC through [TwoMillionKit](https://github.com/insidegui/TwoMillionKit) |
 | Clipboard | `NSPasteboard.general` via AppKit (macOS only) |
 | Transforms | Enum + instruction strings; case-insensitive lookup |
 | Testing | `swift test`; live Foundation Models tests skip on hosts without Apple Intelligence |
