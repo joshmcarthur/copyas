@@ -79,7 +79,7 @@ Run `copyas --help` for full usage. Current version: `0.1.0` (`copyas --version`
 
 By default, copyas uses **Private Cloud Compute** when `/usr/bin/fm` is available (macOS 27+), otherwise the on-device Apple Foundation Model. Override with `--cloud` (require PCC) or `--local` (on-device only). `--cloud` and `--local` cannot be used together.
 
-Private Cloud Compute is provided via [TwoMillionKit](https://github.com/insidegui/TwoMillionKit), which shells out to Apple's `fm` tool. Use sparingly and at your own risk. PCC requires an unsandboxed app; sandboxed Mac App Store builds cannot use it. The PCC path buffers the full response (no incremental stdout streaming).
+Private Cloud Compute shells out to Apple's `/usr/bin/fm` command-line tool. PCC requires an unsandboxed app; sandboxed Mac App Store builds cannot use it. The PCC path buffers the full response (no incremental stdout streaming).
 
 ### Transforms
 
@@ -188,7 +188,7 @@ This section is for coding agents (Cursor, Claude Code, etc.) implementing or ex
 |------|----------|
 | Package layout | SwiftPM executable target; see SPEC §6.1 |
 | CLI | Prefer [swift-argument-parser](https://github.com/apple/swift-argument-parser) |
-| Model | `FoundationModels` via on-device `SystemLanguageModel` or PCC through vendored [TwoMillionKit](https://github.com/insidegui/TwoMillionKit) (`Vendor/TwoMillionKit`) |
+| Model | `FoundationModels` via on-device `SystemLanguageModel` or PCC through `/usr/bin/fm` |
 | Clipboard | `NSPasteboard.general` via AppKit (macOS only) |
 | Transforms | Enum + instruction strings; case-insensitive lookup |
 | Testing | `swift test`; live Foundation Models tests skip on hosts without Apple Intelligence |

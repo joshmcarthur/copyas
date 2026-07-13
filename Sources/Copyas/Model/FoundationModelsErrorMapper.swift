@@ -1,7 +1,4 @@
 import Foundation
-#if COPYAS_ENABLE_PCC
-import TwoMillionKit
-#endif
 
 enum FoundationModelsErrorMapper {
     static func map(_ error: Error) -> GenerationError {

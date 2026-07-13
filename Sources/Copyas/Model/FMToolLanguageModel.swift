@@ -1,13 +1,14 @@
+#if COPYAS_ENABLE_PCC
 import Foundation
 import FoundationModels
 
 /// A Foundation Models language model that delegates generation to `/usr/bin/fm`.
 ///
-/// `FMToolLanguageModel` is intended for unsandboxed macOS apps. The command-line
-/// tool is outside an app sandbox and is not available to sandboxed processes.
-public struct FMToolLanguageModel: LanguageModel {
+/// Intended for unsandboxed macOS apps. The `fm` command-line tool is outside an app
+/// sandbox and is not available to sandboxed processes.
+struct FMToolLanguageModel: LanguageModel {
     /// The model selected by the `fm` command-line tool.
-    public enum Model: String, Hashable, Sendable {
+    enum Model: String, Hashable, Sendable {
         /// The Apple Foundation Model hosted by Private Cloud Compute.
         case privateCloudCompute = "pcc"
 
@@ -15,15 +16,10 @@ public struct FMToolLanguageModel: LanguageModel {
         case system
     }
 
-    public let capabilities = LanguageModelCapabilities([.guidedGeneration])
-    public let executorConfiguration: Executor.Configuration
+    let capabilities = LanguageModelCapabilities([.guidedGeneration])
+    let executorConfiguration: Executor.Configuration
 
-    /// Creates an `fm`-backed model.
-    ///
-    /// - Parameters:
-    ///   - model: The model for `fm` to use. Defaults to Private Cloud Compute.
-    ///   - executableURL: The location of the `fm` executable.
-    public init(
+    init(
         model: Model = .privateCloudCompute,
         executableURL: URL = URL(fileURLWithPath: "/usr/bin/fm")
     ) {
@@ -33,12 +29,12 @@ public struct FMToolLanguageModel: LanguageModel {
         )
     }
 
-    public struct Executor: LanguageModelExecutor {
-        public struct Configuration: Hashable, Sendable {
-            public var model: Model
-            public var executableURL: URL
+    struct Executor: LanguageModelExecutor {
+        struct Configuration: Hashable, Sendable {
+            var model: Model
+            var executableURL: URL
 
-            public init(
+            init(
                 model: Model = .privateCloudCompute,
                 executableURL: URL = URL(fileURLWithPath: "/usr/bin/fm")
             ) {
@@ -49,7 +45,7 @@ public struct FMToolLanguageModel: LanguageModel {
 
         private let configuration: Configuration
 
-        public init(configuration: Configuration) throws {
+        init(configuration: Configuration) throws {
             guard FileManager.default.isExecutableFile(
                 atPath: configuration.executableURL.path
             ) else {
@@ -61,9 +57,9 @@ public struct FMToolLanguageModel: LanguageModel {
             self.configuration = configuration
         }
 
-        public func respond(
+        func respond(
             to request: LanguageModelExecutorGenerationRequest,
-            model: FMToolLanguageModel,
+            model _: FMToolLanguageModel,
             streamingInto channel: LanguageModelExecutorGenerationChannel
         ) async throws {
             guard request.enabledToolDefinitions.isEmpty else {
@@ -107,21 +103,21 @@ public struct FMToolLanguageModel: LanguageModel {
     }
 }
 
-public enum FMToolLanguageModelError: Error, LocalizedError, Sendable {
+enum FMToolLanguageModelError: Error, LocalizedError, Sendable {
     case executableNotFound(URL)
     case invalidRequest(String)
     case invalidUTF8Output
     case processFailed(status: Int32, message: String)
 
-    public var errorDescription: String? {
+    var errorDescription: String? {
         switch self {
-        case .executableNotFound(let url):
+        case let .executableNotFound(url):
             "No executable was found at \(url.path)."
-        case .invalidRequest(let reason):
+        case let .invalidRequest(reason):
             "The request cannot be represented by the fm command-line tool: \(reason)"
         case .invalidUTF8Output:
             "The fm command-line tool returned output that is not valid UTF-8."
-        case .processFailed(let status, let message):
+        case let .processFailed(status, message):
             "The fm command-line tool exited with status \(status): \(message)"
         }
     }
@@ -142,7 +138,7 @@ private struct Invocation {
         request: LanguageModelExecutorGenerationRequest,
         configuration: FMToolLanguageModel.Executor.Configuration
     ) throws {
-        guard case .prompt(let prompt) = request.transcript.last else {
+        guard case let .prompt(prompt) = request.transcript.last else {
             throw FMToolLanguageModelError.invalidRequest(
                 "the transcript must end with a prompt"
             )
@@ -153,7 +149,7 @@ private struct Invocation {
         }
 
         let directory = FileManager.default.temporaryDirectory
-            .appendingPathComponent("TwoMillionKit-\(request.id.uuidString)", isDirectory: true)
+            .appendingPathComponent("copyas-fm-\(request.id.uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(
             at: directory,
             withIntermediateDirectories: true
@@ -175,9 +171,7 @@ private struct Invocation {
 
         for segment in prompt.segments {
             switch segment {
-            case .text(let text):
-                // Keep the option and its value in one argv element so content
-                // beginning with "--" cannot be interpreted as another option.
+            case let .text(text):
                 arguments.append("--text=\(text.content)")
             case .structure:
                 throw FMToolLanguageModelError.invalidRequest(
@@ -211,7 +205,7 @@ private struct Invocation {
 
         self.executableURL = configuration.executableURL
         self.arguments = arguments
-        self.temporaryDirectory = directory
+        temporaryDirectory = directory
         standardOutputURL = directory.appendingPathComponent("stdout")
         standardErrorURL = directory.appendingPathComponent("stderr")
     }
@@ -237,22 +231,16 @@ private struct Invocation {
             try? standardError.close()
         }
 
-        // PCC's command-line access gate requires a controlling terminal with a
-        // nonzero window size. Apple's script(1) provides the signed process
-        // boundary and PTY that fm expects. User-provided arguments are passed
-        // positionally through "$@" and are never interpolated into shell code.
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/script")
         process.arguments = [
             "-q", "/dev/null",
             "/bin/sh", "-c",
             "stty rows 24 cols 80; exec \"$@\"",
-            "TwoMillionKit-fm",
+            "copyas-fm",
             executableURL.path,
         ] + arguments
 
-        // Keep stdin open until the child exits. Closing it causes script(1) to
-        // render an EOF marker into the captured terminal output.
         let standardInput = Pipe()
         process.standardInput = standardInput
         process.standardOutput = standardOutput
@@ -306,7 +294,6 @@ private struct CommandResult: Sendable {
 private extension String {
     func removingOneTrailingNewline() -> String {
         if hasSuffix("\r\n") {
-            // Swift treats CRLF as one extended grapheme cluster.
             return String(dropLast())
         }
         if hasSuffix("\n") {
@@ -323,3 +310,4 @@ private extension String {
         .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }
+#endif

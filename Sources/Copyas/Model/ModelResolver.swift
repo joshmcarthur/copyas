@@ -1,8 +1,5 @@
 import Foundation
 import FoundationModels
-#if COPYAS_ENABLE_PCC
-import TwoMillionKit
-#endif
 
 public enum ModelResolver {
     public static let defaultFMExecutablePath = "/usr/bin/fm"

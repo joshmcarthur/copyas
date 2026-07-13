@@ -4,4 +4,3 @@
 --wraparguments before-first
 --wrapparameters before-first
 --ifdef no-indent
---exclude Vendor

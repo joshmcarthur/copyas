@@ -2,10 +2,6 @@
 import FoundationModels
 import XCTest
 
-#if COPYAS_ENABLE_PCC
-import TwoMillionKit
-#endif
-
 final class LiveModelClientTests: XCTestCase {
     #if COPYAS_ENABLE_PCC
     func testPrewarmIsNoOpForPrivateCloudComputeBackend() throws {

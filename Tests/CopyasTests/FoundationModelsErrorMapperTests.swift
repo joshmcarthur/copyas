@@ -1,8 +1,5 @@
 @testable import Copyas
 import Foundation
-#if COPYAS_ENABLE_PCC
-import TwoMillionKit
-#endif
 import XCTest
 
 final class FoundationModelsErrorMapperTests: XCTestCase {

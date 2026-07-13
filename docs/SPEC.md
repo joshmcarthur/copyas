@@ -250,6 +250,7 @@ When adding a transform, decide: global context needed? → `mapReduce`. Output 
 | `Sources/copyas/Model/ModelClient.swift` | Availability check + `LanguageModelSession` |
 | `Sources/copyas/Model/ModelBackend.swift` | On-device vs PCC backend |
 | `Sources/copyas/Model/ModelResolver.swift` | Model preference resolution |
+| `Sources/copyas/Model/FMToolLanguageModel.swift` | Private Cloud Compute via `/usr/bin/fm` (macOS 27+ build) |
 | `Sources/copyas/Model/GenerationError.swift` | Typed errors → exit codes |
 
 Keep files focused; split further only when a file exceeds ~200 lines or mixes unrelated concerns.
@@ -261,7 +262,7 @@ Keep files focused; split further only when a file exceeds ~200 lines or mixes u
 | Preference | Behaviour |
 |------------|-----------|
 | Automatic (default) | Use Private Cloud Compute when `/usr/bin/fm` is executable; otherwise on-device |
-| `--cloud` | Require PCC (`FMToolLanguageModel` via [TwoMillionKit](https://github.com/insidegui/TwoMillionKit)) |
+| `--cloud` | Require PCC (`FMToolLanguageModel` via `/usr/bin/fm`) |
 | `--local` | On-device `SystemLanguageModel.default` only |
 
 Use `LanguageModelSession` from Foundation Models with the resolved backend's `LanguageModel`.
@@ -295,8 +296,7 @@ Failure: if a single semantic chunk still exceeds the budget after splitting, ex
 | Package | Use |
 |---------|-----|
 | [swift-argument-parser](https://github.com/apple/swift-argument-parser) | CLI parsing |
-| [TwoMillionKit](https://github.com/insidegui/TwoMillionKit) (vendored) | Private Cloud Compute via `fm` (macOS 27+ runtime) |
-| Apple `FoundationModels` | On-device and session API |
+| Apple `FoundationModels` | On-device and session API; PCC via inlined `FMToolLanguageModel` |
 
 No other runtime dependencies in v0.1.
 
