@@ -28,7 +28,6 @@ final class ModelResolverTests: XCTestCase {
 
     #if COPYAS_ENABLE_PCC
     func testCloudReturnsPrivateCloudComputeWhenFMExists() throws {
-
         let stub = try makeExecutableStub()
         defer { try? FileManager.default.removeItem(at: stub.deletingLastPathComponent()) }
 

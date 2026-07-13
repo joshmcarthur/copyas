@@ -19,7 +19,6 @@ final class LiveModelClientTests: XCTestCase {
     }
 
     func testPrivateCloudComputeBackendEmitsBufferedPartialOutput() async throws {
-
         let stub = try makeEchoStub()
         defer { try? FileManager.default.removeItem(at: stub.deletingLastPathComponent()) }
 
