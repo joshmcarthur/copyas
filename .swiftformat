@@ -3,3 +3,4 @@
 --maxwidth 100
 --wraparguments before-first
 --wrapparameters before-first
+--exclude Vendor

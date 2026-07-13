@@ -10,7 +10,9 @@ public enum CopyasApp {
 
             var runtimeEnvironment = environment
             if options.useCloud || options.useLocal {
-                runtimeEnvironment.modelClient = try LiveModelClient(preference: options.modelPreference)
+                runtimeEnvironment.modelClient = try LiveModelClient(
+                    preference: options.modelPreference
+                )
             }
 
             guard let transform = Transform.named(options.transform) else {

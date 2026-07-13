@@ -53,7 +53,10 @@ final class LiveModelClientTests: XCTestCase {
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let executable = directory.appendingPathComponent("echo-stub")
-        try FileManager.default.createSymbolicLink(atPath: executable.path, withDestinationPath: "/bin/echo")
+        try FileManager.default.createSymbolicLink(
+            atPath: executable.path,
+            withDestinationPath: "/bin/echo"
+        )
         return executable
     }
 }
