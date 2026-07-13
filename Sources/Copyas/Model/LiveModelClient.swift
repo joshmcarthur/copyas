@@ -20,14 +20,15 @@ public struct LiveModelClient: ModelClient {
     }
 
     public func checkAvailability() throws {
-        switch backend {
-        case let .onDevice(model):
+        if case let .onDevice(model) = backend {
             try checkOnDeviceAvailability(model)
-        #if COPYAS_ENABLE_PCC
-        case .privateCloudCompute:
             return
-        #endif
         }
+#if COPYAS_ENABLE_PCC
+        if case .privateCloudCompute = backend {
+            return
+        }
+#endif
     }
 
     public func generate(
