@@ -205,9 +205,9 @@ private struct Invocation {
 
         self.executableURL = configuration.executableURL
         self.arguments = arguments
-        self.temporaryDirectory = directory
-        self.standardOutputURL = directory.appendingPathComponent("stdout")
-        self.standardErrorURL = directory.appendingPathComponent("stderr")
+        temporaryDirectory = directory
+        standardOutputURL = directory.appendingPathComponent("stdout")
+        standardErrorURL = directory.appendingPathComponent("stderr")
     }
 
     func run() async throws -> CommandResult {
