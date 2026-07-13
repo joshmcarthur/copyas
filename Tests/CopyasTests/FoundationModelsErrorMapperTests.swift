@@ -1,6 +1,8 @@
 @testable import Copyas
 import Foundation
+#if COPYAS_ENABLE_PCC
 import TwoMillionKit
+#endif
 import XCTest
 
 final class FoundationModelsErrorMapperTests: XCTestCase {
@@ -74,6 +76,7 @@ final class FoundationModelsErrorMapperTests: XCTestCase {
         )
     }
 
+    #if COPYAS_ENABLE_PCC
     func testMapsFMToolExecutableNotFoundToCloudModelUnavailable() {
         let error = FMToolLanguageModelError.executableNotFound(
             URL(fileURLWithPath: "/usr/bin/fm")
@@ -93,6 +96,7 @@ final class FoundationModelsErrorMapperTests: XCTestCase {
             .generationFailed("PCC unavailable")
         )
     }
+    #endif
 
     func testPassesThroughGenerationError() {
         XCTAssertEqual(

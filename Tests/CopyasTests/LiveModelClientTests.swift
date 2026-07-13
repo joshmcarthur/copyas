@@ -1,11 +1,16 @@
 @testable import Copyas
 import FoundationModels
-import TwoMillionKit
 import XCTest
 
+#if COPYAS_ENABLE_PCC
+import TwoMillionKit
+#endif
+
 final class LiveModelClientTests: XCTestCase {
+    #if COPYAS_ENABLE_PCC
     func testPrewarmIsNoOpForPrivateCloudComputeBackend() throws {
         try MacOSTestSupport.skipUnlessMacOS27()
+
         let backend = ModelBackend.privateCloudCompute(
             FMToolLanguageModel(
                 model: .privateCloudCompute,
@@ -20,6 +25,7 @@ final class LiveModelClientTests: XCTestCase {
 
     func testPrivateCloudComputeBackendEmitsBufferedPartialOutput() async throws {
         try MacOSTestSupport.skipUnlessMacOS27()
+
         let stub = try makeEchoStub()
         defer { try? FileManager.default.removeItem(at: stub.deletingLastPathComponent()) }
 
@@ -39,6 +45,7 @@ final class LiveModelClientTests: XCTestCase {
         XCTAssertEqual(partials[0], output)
         XCTAssertTrue(output.contains("respond --model system --no-stream"))
     }
+    #endif
 
     func testOnDeviceBackendSupportsStreamingFlag() throws {
         let backend = try ModelResolver.resolve(
@@ -48,6 +55,7 @@ final class LiveModelClientTests: XCTestCase {
         XCTAssertTrue(backend.supportsStreaming)
     }
 
+    #if COPYAS_ENABLE_PCC
     private func makeEchoStub() throws -> URL {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent(UUID().uuidString, isDirectory: true)
@@ -59,4 +67,5 @@ final class LiveModelClientTests: XCTestCase {
         )
         return executable
     }
+    #endif
 }

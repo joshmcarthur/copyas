@@ -2,9 +2,11 @@ import Foundation
 
 enum PrivateCloudComputeSupport {
     static var isRuntimeSupported: Bool {
+        #if COPYAS_ENABLE_PCC
         if #available(macOS 27, *) {
             return true
         }
+        #endif
         return false
     }
 

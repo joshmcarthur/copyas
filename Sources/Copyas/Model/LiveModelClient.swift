@@ -23,8 +23,10 @@ public struct LiveModelClient: ModelClient {
         switch backend {
         case let .onDevice(model):
             try checkOnDeviceAvailability(model)
+        #if COPYAS_ENABLE_PCC
         case .privateCloudCompute:
             return
+        #endif
         }
     }
 

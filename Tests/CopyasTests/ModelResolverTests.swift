@@ -26,8 +26,10 @@ final class ModelResolverTests: XCTestCase {
         }
     }
 
+    #if COPYAS_ENABLE_PCC
     func testCloudReturnsPrivateCloudComputeWhenFMExists() throws {
         try MacOSTestSupport.skipUnlessMacOS27()
+
         let stub = try makeExecutableStub()
         defer { try? FileManager.default.removeItem(at: stub.deletingLastPathComponent()) }
 
@@ -42,6 +44,7 @@ final class ModelResolverTests: XCTestCase {
 
     func testAutomaticPrefersCloudWhenFMExists() throws {
         try MacOSTestSupport.skipUnlessMacOS27()
+
         let stub = try makeExecutableStub()
         defer { try? FileManager.default.removeItem(at: stub.deletingLastPathComponent()) }
 
@@ -53,6 +56,7 @@ final class ModelResolverTests: XCTestCase {
             XCTFail("Expected Private Cloud Compute backend")
         }
     }
+    #endif
 
     func testAutomaticFallsBackToLocalWhenFMMissing() throws {
         let backend = try ModelResolver.resolve(

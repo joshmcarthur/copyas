@@ -1,6 +1,8 @@
 import Foundation
 import FoundationModels
+#if COPYAS_ENABLE_PCC
 import TwoMillionKit
+#endif
 
 public enum ModelResolver {
     public static let defaultFMExecutablePath = "/usr/bin/fm"
@@ -27,6 +29,7 @@ public enum ModelResolver {
     }
 
     private static func makeCloudBackend(fmExecutableURL: URL) throws -> ModelBackend {
+        #if COPYAS_ENABLE_PCC
         guard PrivateCloudComputeSupport.isRuntimeSupported else {
             throw GenerationError.cloudModelUnavailable
         }
@@ -39,5 +42,8 @@ public enum ModelResolver {
                 executableURL: fmExecutableURL
             )
         )
+        #else
+        throw GenerationError.cloudModelUnavailable
+        #endif
     }
 }
