@@ -8,7 +8,7 @@ import FoundationModels
 /// sandbox and is not available to sandboxed processes.
 struct FMToolLanguageModel: LanguageModel {
     /// The model selected by the `fm` command-line tool.
-    enum Model: String, Hashable, Sendable {
+    enum Model: String, Hashable {
         /// The Apple Foundation Model hosted by Private Cloud Compute.
         case privateCloudCompute = "pcc"
 
