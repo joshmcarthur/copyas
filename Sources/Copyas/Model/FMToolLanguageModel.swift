@@ -30,7 +30,7 @@ struct FMToolLanguageModel: LanguageModel {
     }
 
     struct Executor: LanguageModelExecutor {
-        struct Configuration: Hashable, Sendable {
+        struct Configuration: Hashable {
             var model: Model
             var executableURL: URL
 
@@ -103,7 +103,7 @@ struct FMToolLanguageModel: LanguageModel {
     }
 }
 
-enum FMToolLanguageModelError: Error, LocalizedError, Sendable {
+enum FMToolLanguageModelError: Error, LocalizedError {
     case executableNotFound(URL)
     case invalidRequest(String)
     case invalidUTF8Output
@@ -205,9 +205,9 @@ private struct Invocation {
 
         self.executableURL = configuration.executableURL
         self.arguments = arguments
-        temporaryDirectory = directory
-        standardOutputURL = directory.appendingPathComponent("stdout")
-        standardErrorURL = directory.appendingPathComponent("stderr")
+        self.temporaryDirectory = directory
+        self.standardOutputURL = directory.appendingPathComponent("stdout")
+        self.standardErrorURL = directory.appendingPathComponent("stderr")
     }
 
     func run() async throws -> CommandResult {
@@ -275,7 +275,7 @@ private struct Invocation {
     }
 }
 
-private struct CommandResult: Sendable {
+private struct CommandResult {
     let status: Int32
     let standardOutput: Data
     let standardError: String
