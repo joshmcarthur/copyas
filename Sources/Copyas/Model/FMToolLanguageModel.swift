@@ -203,7 +203,7 @@ private struct Invocation {
             arguments.append("--greedy")
         }
 
-        self.executableURL = configuration.executableURL
+        executableURL = configuration.executableURL
         self.arguments = arguments
         temporaryDirectory = directory
         standardOutputURL = directory.appendingPathComponent("stdout")
