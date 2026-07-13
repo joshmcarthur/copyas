@@ -5,7 +5,6 @@ import XCTest
 final class LiveModelClientTests: XCTestCase {
     #if COPYAS_ENABLE_PCC
     func testPrewarmIsNoOpForPrivateCloudComputeBackend() {
-
         let backend = ModelBackend.privateCloudCompute(
             FMToolLanguageModel(
                 model: .privateCloudCompute,
@@ -17,7 +16,6 @@ final class LiveModelClientTests: XCTestCase {
         client.prewarm(transform: .summary)
         client.prewarmAllTransforms()
     }
-
     func testPrivateCloudComputeBackendEmitsBufferedPartialOutput() async throws {
         let stub = try makeEchoStub()
         defer { try? FileManager.default.removeItem(at: stub.deletingLastPathComponent()) }
