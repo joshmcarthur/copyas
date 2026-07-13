@@ -22,7 +22,7 @@ struct CopyasOptions: ParsableArguments {
 
     @Flag(
         name: .customLong("cloud"),
-        help: "Use Private Cloud Compute (requires macOS 27+ and fm)."
+        help: "Use Private Cloud Compute via the fm command-line tool."
     )
     var useCloud = false
 

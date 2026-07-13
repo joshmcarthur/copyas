@@ -27,9 +27,6 @@ public enum ModelResolver {
 
     private static func makeCloudBackend(fmExecutableURL: URL) throws -> ModelBackend {
         #if COPYAS_ENABLE_PCC
-        guard PrivateCloudComputeSupport.isRuntimeSupported else {
-            throw GenerationError.cloudModelUnavailable
-        }
         guard FileManager.default.isExecutableFile(atPath: fmExecutableURL.path) else {
             throw GenerationError.cloudModelUnavailable
         }

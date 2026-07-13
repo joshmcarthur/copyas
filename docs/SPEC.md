@@ -55,7 +55,7 @@ A minimal **Copyas** menubar app may ship alongside the CLI. It is a clipboard-o
 | Language | Swift 6.x |
 | Build | Swift Package Manager (`Package.swift`) |
 | Framework | `FoundationModels` (Apple) |
-| Minimum OS | macOS 26.0 (Tahoe); Private Cloud Compute requires macOS 27+ |
+| Minimum OS | macOS 26.0 (Tahoe) |
 | Device | Apple Intelligence–capable Mac; model availability checked at runtime |
 | Clipboard | `AppKit` (`NSPasteboard`) — macOS only |
 
@@ -250,7 +250,7 @@ When adding a transform, decide: global context needed? → `mapReduce`. Output 
 | `Sources/copyas/Model/ModelClient.swift` | Availability check + `LanguageModelSession` |
 | `Sources/copyas/Model/ModelBackend.swift` | On-device vs PCC backend |
 | `Sources/copyas/Model/ModelResolver.swift` | Model preference resolution |
-| `Sources/copyas/Model/FMToolLanguageModel.swift` | Private Cloud Compute via `/usr/bin/fm` (macOS 27+ build) |
+| `Sources/copyas/Model/FMToolLanguageModel.swift` | Private Cloud Compute via `/usr/bin/fm` when built with PCC support |
 | `Sources/copyas/Model/GenerationError.swift` | Typed errors → exit codes |
 
 Keep files focused; split further only when a file exceeds ~200 lines or mixes unrelated concerns.

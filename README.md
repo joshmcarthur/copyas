@@ -11,7 +11,7 @@ copyas summary --stdin < report.txt
 
 ## Requirements
 
-- macOS 26+ (Apple Intelligence–capable Mac); Private Cloud Compute requires macOS 27+
+- macOS 26+ (Apple Intelligence–capable Mac)
 - Apple Intelligence enabled in System Settings
 - Xcode 26+ or Swift 6 toolchain
 
@@ -66,7 +66,7 @@ Run `copyas --help` for full usage. Current version: `0.1.0` (`copyas --version`
 | `--stdin` | — | Read input from stdin instead of the clipboard |
 | `--write` | `-w` | Write result to the clipboard instead of stdout (stdout stays silent on success) |
 | `--no-stream` | — | Buffer the full response before writing stdout (ignored with `-w`, which always buffers) |
-| `--cloud` | — | Use Private Cloud Compute via the `fm` command-line tool (macOS 27+) |
+| `--cloud` | — | Use Private Cloud Compute via the `fm` command-line tool |
 | `--local` | — | Force the on-device model only |
 | `--help` | `-h` | Show usage |
 | `--version` | `-v` | Show version |
@@ -77,7 +77,7 @@ Run `copyas --help` for full usage. Current version: `0.1.0` (`copyas --version`
 
 ### Model selection
 
-By default, copyas uses **Private Cloud Compute** when `/usr/bin/fm` is available (macOS 27+), otherwise the on-device Apple Foundation Model. Override with `--cloud` (require PCC) or `--local` (on-device only). `--cloud` and `--local` cannot be used together.
+By default, copyas uses **Private Cloud Compute** when `/usr/bin/fm` is available, otherwise the on-device Apple Foundation Model. Override with `--cloud` (require PCC) or `--local` (on-device only). `--cloud` and `--local` cannot be used together.
 
 Private Cloud Compute shells out to Apple's `/usr/bin/fm` command-line tool. PCC requires an unsandboxed app; sandboxed Mac App Store builds cannot use it. The PCC path buffers the full response (no incremental stdout streaming).
 
