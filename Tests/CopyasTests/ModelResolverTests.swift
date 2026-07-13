@@ -39,6 +39,7 @@ final class ModelResolverTests: XCTestCase {
             XCTFail("Expected Private Cloud Compute backend")
         }
     }
+
     func testAutomaticPrefersCloudWhenFMExists() throws {
         let stub = try makeExecutableStub()
         defer { try? FileManager.default.removeItem(at: stub.deletingLastPathComponent()) }
