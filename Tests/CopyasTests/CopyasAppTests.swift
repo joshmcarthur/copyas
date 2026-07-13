@@ -310,6 +310,22 @@ final class CopyasAppTests: XCTestCase {
         XCTAssertTrue(stdout.value.isEmpty)
     }
 
+    func testConflictingCloudAndLocalFlagsExit64() async {
+        let stdout = OutputCapture()
+        let stderr = OutputCapture()
+        let environment = makeEnvironment(
+            arguments: ["summary", "--cloud", "--local"],
+            stdout: stdout,
+            stderr: stderr
+        )
+
+        let exitCode = await CopyasApp.run(environment: environment)
+
+        XCTAssertEqual(exitCode, 64)
+        XCTAssertTrue(stderr.value.contains("Cannot use --cloud and --local together"))
+        XCTAssertTrue(stdout.value.isEmpty)
+    }
+
     func testHelpWritesStdoutAndExitsZero() async {
         let stdout = OutputCapture()
         let stderr = OutputCapture()

@@ -10,6 +10,7 @@ public enum GenerationError: Error, Equatable {
     case appleIntelligenceNotEnabled
     case modelNotReady
     case modelUnavailable
+    case cloudModelUnavailable
     case modelAssetsUnavailable
     case contentBlocked
     case contextWindowExceeded
@@ -29,7 +30,7 @@ public enum GenerationError: Error, Equatable {
             3
         case .modelNotReady, .modelAssetsUnavailable:
             4
-        case .modelUnavailable:
+        case .modelUnavailable, .cloudModelUnavailable:
             5
         case .contentBlocked, .generationFailed, .clipboardWriteFailed, .contextWindowExceeded:
             1
@@ -56,6 +57,8 @@ public enum GenerationError: Error, Equatable {
             "language model is not ready"
         case .modelUnavailable:
             "language model unavailable"
+        case .cloudModelUnavailable:
+            "Private Cloud Compute is not available on this Mac"
         case .modelAssetsUnavailable:
             "Apple Intelligence model assets are unavailable; toggle Apple Intelligence off and on in System Settings, then restart your Mac"
         case .contentBlocked:

@@ -73,6 +73,28 @@ final class FoundationModelsErrorMapperTests: XCTestCase {
         )
     }
 
+    #if COPYAS_ENABLE_PCC
+    func testMapsFMToolExecutableNotFoundToCloudModelUnavailable() {
+        let error = FMToolLanguageModelError.executableNotFound(
+            URL(fileURLWithPath: "/usr/bin/fm")
+        )
+
+        XCTAssertEqual(FoundationModelsErrorMapper.map(error), .cloudModelUnavailable)
+    }
+
+    func testMapsFMToolProcessFailedToGenerationFailed() {
+        let error = FMToolLanguageModelError.processFailed(
+            status: 1,
+            message: "PCC unavailable"
+        )
+
+        XCTAssertEqual(
+            FoundationModelsErrorMapper.map(error),
+            .generationFailed("PCC unavailable")
+        )
+    }
+    #endif
+
     func testPassesThroughGenerationError() {
         XCTAssertEqual(
             FoundationModelsErrorMapper.map(GenerationError.noInput),

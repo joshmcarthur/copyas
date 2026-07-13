@@ -6,6 +6,12 @@ enum FoundationModelsErrorMapper {
             return generationError
         }
 
+        #if COPYAS_ENABLE_PCC
+        if let fmError = error as? FMToolLanguageModelError {
+            return mapFMToolError(fmError)
+        }
+        #endif
+
         if containsGuardrailViolation(error) {
             return .contentBlocked
         }
@@ -20,6 +26,21 @@ enum FoundationModelsErrorMapper {
 
         return .generationFailed(String(describing: error))
     }
+
+    #if COPYAS_ENABLE_PCC
+    private static func mapFMToolError(_ error: FMToolLanguageModelError) -> GenerationError {
+        switch error {
+        case .executableNotFound:
+            .cloudModelUnavailable
+        case let .processFailed(_, message):
+            .generationFailed(message)
+        case let .invalidRequest(reason):
+            .generationFailed(reason)
+        case .invalidUTF8Output:
+            .generationFailed("the fm command-line tool returned output that is not valid UTF-8")
+        }
+    }
+    #endif
 
     private static func containsContextWindowExceeded(_ error: Error) -> Bool {
         String(describing: error).contains("exceededContextWindowSize")

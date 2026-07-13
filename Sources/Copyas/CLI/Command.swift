@@ -19,6 +19,27 @@ struct CopyasOptions: ParsableArguments {
         help: "Buffer the full response before writing to stdout."
     )
     var noStream = false
+
+    @Flag(
+        name: .customLong("cloud"),
+        help: "Use Private Cloud Compute via the fm command-line tool."
+    )
+    var useCloud = false
+
+    @Flag(name: .customLong("local"), help: "Force on-device model only.")
+    var useLocal = false
+
+    var modelPreference: ModelPreference {
+        if useCloud { return .cloud }
+        if useLocal { return .local }
+        return .automatic
+    }
+
+    func validate() throws {
+        if useCloud, useLocal {
+            throw ValidationError("Cannot use --cloud and --local together.")
+        }
+    }
 }
 
 struct CopyasCommand: ParsableCommand {

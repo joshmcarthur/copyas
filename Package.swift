@@ -1,5 +1,20 @@
 // swift-tools-version: 6.2
+import Foundation
 import PackageDescription
+
+let enablePCC: Bool = {
+    if ProcessInfo.processInfo.environment["COPYAS_ENABLE_PCC"] == "0" {
+        return false
+    }
+    if ProcessInfo.processInfo.environment["COPYAS_ENABLE_PCC"] == "1" {
+        return true
+    }
+    return ProcessInfo.processInfo.operatingSystemVersion.majorVersion >= 27
+}()
+
+let copyasSwiftSettings: [SwiftSetting] = enablePCC
+    ? [.define("COPYAS_ENABLE_PCC")]
+    : []
 
 let package = Package(
     name: "copyas",
@@ -23,6 +38,7 @@ let package = Package(
                 "RecursiveTextSplit",
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
             ],
+            swiftSettings: copyasSwiftSettings,
             linkerSettings: [
                 .linkedFramework("FoundationModels"),
             ]
@@ -49,7 +65,8 @@ let package = Package(
         ),
         .testTarget(
             name: "CopyasTests",
-            dependencies: ["Copyas"]
+            dependencies: ["Copyas"],
+            swiftSettings: copyasSwiftSettings
         ),
     ]
 )

@@ -2,24 +2,31 @@ import Foundation
 import FoundationModels
 
 public struct LiveModelClient: ModelClient {
+    private let backend: ModelBackend
     private let budget: TokenBudget
 
-    public init(budget: TokenBudget = TokenBudget()) {
-        self.budget = budget
+    public init(backend: ModelBackend) {
+        self.backend = backend
+        budget = TokenBudget(tokenCounter: backend.makeTokenCounter())
+    }
+
+    public init(preference: ModelPreference = .automatic) throws {
+        try self.init(backend: ModelResolver.resolve(preference: preference))
+    }
+
+    public init() {
+        let backend = (try? ModelResolver.resolve(preference: .automatic)) ?? .onDevice(.default)
+        self.init(backend: backend)
     }
 
     public func checkAvailability() throws {
-        switch SystemLanguageModel.default.availability {
-        case .available:
-            return
-        case .unavailable(.deviceNotEligible):
-            throw GenerationError.deviceNotEligible
-        case .unavailable(.appleIntelligenceNotEnabled):
-            throw GenerationError.appleIntelligenceNotEnabled
-        case .unavailable(.modelNotReady):
-            throw GenerationError.modelNotReady
-        case .unavailable:
-            throw GenerationError.modelUnavailable
+        switch backend {
+        case let .onDevice(model):
+            try checkOnDeviceAvailability(model)
+        #if COPYAS_ENABLE_PCC
+        case .privateCloudCompute:
+            break
+        #endif
         }
     }
 
@@ -61,12 +68,28 @@ public struct LiveModelClient: ModelClient {
     }
 
     public func prewarm(transform: Transform) {
+        guard case .onDevice = backend else { return }
         makeSession(instructions: transform.instructions).prewarm()
     }
 
     public func prewarmAllTransforms() {
         for transform in Transform.allCases {
             prewarm(transform: transform)
+        }
+    }
+
+    private func checkOnDeviceAvailability(_ model: SystemLanguageModel) throws {
+        switch model.availability {
+        case .available:
+            return
+        case .unavailable(.deviceNotEligible):
+            throw GenerationError.deviceNotEligible
+        case .unavailable(.appleIntelligenceNotEnabled):
+            throw GenerationError.appleIntelligenceNotEnabled
+        case .unavailable(.modelNotReady):
+            throw GenerationError.modelNotReady
+        case .unavailable:
+            throw GenerationError.modelUnavailable
         }
     }
 
@@ -77,21 +100,24 @@ public struct LiveModelClient: ModelClient {
     ) async throws -> String {
         let session = makeSession(instructions: instructions)
         if let onPartial {
-            return try await generateStreaming(
-                session: session,
-                input: input,
-                onPartial: onPartial
-            )
+            if backend.supportsStreaming {
+                return try await generateStreaming(
+                    session: session,
+                    input: input,
+                    onPartial: onPartial
+                )
+            }
+            let response = try await session.respond(to: input)
+            let content = try TransformOutput.parse(response.content)
+            onPartial(content)
+            return content
         }
         let response = try await session.respond(to: input)
         return try TransformOutput.parse(response.content)
     }
 
     private func makeSession(instructions: String) -> LanguageModelSession {
-        LanguageModelSession(
-            model: SystemLanguageModel.default,
-            instructions: instructions
-        )
+        backend.makeSession(instructions: instructions)
     }
 
     private func generateStreaming(
