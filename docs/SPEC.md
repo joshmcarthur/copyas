@@ -55,7 +55,7 @@ A minimal **Copyas** menubar app may ship alongside the CLI. It is a clipboard-o
 | Language | Swift 6.x |
 | Build | Swift Package Manager (`Package.swift`) |
 | Framework | `FoundationModels` (Apple) |
-| Minimum OS | macOS 27.0 — adjust only if build verification proves otherwise |
+| Minimum OS | macOS 26.0 (Tahoe); Private Cloud Compute requires macOS 27+ |
 | Device | Apple Intelligence–capable Mac; model availability checked at runtime |
 | Clipboard | `AppKit` (`NSPasteboard`) — macOS only |
 
@@ -295,7 +295,7 @@ Failure: if a single semantic chunk still exceeds the budget after splitting, ex
 | Package | Use |
 |---------|-----|
 | [swift-argument-parser](https://github.com/apple/swift-argument-parser) | CLI parsing |
-| [TwoMillionKit](https://github.com/insidegui/TwoMillionKit) | Private Cloud Compute via `fm` |
+| [TwoMillionKit](https://github.com/insidegui/TwoMillionKit) (vendored) | Private Cloud Compute via `fm` (macOS 27+ runtime) |
 | Apple `FoundationModels` | On-device and session API |
 
 No other runtime dependencies in v0.1.

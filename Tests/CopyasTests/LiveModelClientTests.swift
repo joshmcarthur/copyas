@@ -4,7 +4,8 @@ import TwoMillionKit
 import XCTest
 
 final class LiveModelClientTests: XCTestCase {
-    func testPrewarmIsNoOpForPrivateCloudComputeBackend() {
+    func testPrewarmIsNoOpForPrivateCloudComputeBackend() throws {
+        try MacOSTestSupport.skipUnlessMacOS27()
         let backend = ModelBackend.privateCloudCompute(
             FMToolLanguageModel(
                 model: .privateCloudCompute,
@@ -18,6 +19,7 @@ final class LiveModelClientTests: XCTestCase {
     }
 
     func testPrivateCloudComputeBackendEmitsBufferedPartialOutput() async throws {
+        try MacOSTestSupport.skipUnlessMacOS27()
         let stub = try makeEchoStub()
         defer { try? FileManager.default.removeItem(at: stub.deletingLastPathComponent()) }
 

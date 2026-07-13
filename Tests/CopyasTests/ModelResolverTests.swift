@@ -27,6 +27,7 @@ final class ModelResolverTests: XCTestCase {
     }
 
     func testCloudReturnsPrivateCloudComputeWhenFMExists() throws {
+        try MacOSTestSupport.skipUnlessMacOS27()
         let stub = try makeExecutableStub()
         defer { try? FileManager.default.removeItem(at: stub.deletingLastPathComponent()) }
 
@@ -40,6 +41,7 @@ final class ModelResolverTests: XCTestCase {
     }
 
     func testAutomaticPrefersCloudWhenFMExists() throws {
+        try MacOSTestSupport.skipUnlessMacOS27()
         let stub = try makeExecutableStub()
         defer { try? FileManager.default.removeItem(at: stub.deletingLastPathComponent()) }
 

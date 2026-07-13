@@ -15,7 +15,7 @@ public enum ModelResolver {
         case .local:
             return makeOnDeviceBackend()
         case .automatic:
-            if FileManager.default.isExecutableFile(atPath: fmExecutableURL.path) {
+            if PrivateCloudComputeSupport.isFMExecutableAvailable(at: fmExecutableURL) {
                 return try makeCloudBackend(fmExecutableURL: fmExecutableURL)
             }
             return makeOnDeviceBackend()
@@ -27,6 +27,9 @@ public enum ModelResolver {
     }
 
     private static func makeCloudBackend(fmExecutableURL: URL) throws -> ModelBackend {
+        guard PrivateCloudComputeSupport.isRuntimeSupported else {
+            throw GenerationError.cloudModelUnavailable
+        }
         guard FileManager.default.isExecutableFile(atPath: fmExecutableURL.path) else {
             throw GenerationError.cloudModelUnavailable
         }

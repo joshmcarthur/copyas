@@ -11,7 +11,7 @@ copyas summary --stdin < report.txt
 
 ## Requirements
 
-- macOS 27+ (Apple Intelligence–capable Mac)
+- macOS 26+ (Apple Intelligence–capable Mac); Private Cloud Compute requires macOS 27+
 - Apple Intelligence enabled in System Settings
 - Xcode 26+ or Swift 6 toolchain
 
@@ -188,7 +188,7 @@ This section is for coding agents (Cursor, Claude Code, etc.) implementing or ex
 |------|----------|
 | Package layout | SwiftPM executable target; see SPEC §6.1 |
 | CLI | Prefer [swift-argument-parser](https://github.com/apple/swift-argument-parser) |
-| Model | `FoundationModels` via on-device `SystemLanguageModel` or PCC through [TwoMillionKit](https://github.com/insidegui/TwoMillionKit) |
+| Model | `FoundationModels` via on-device `SystemLanguageModel` or PCC through vendored [TwoMillionKit](https://github.com/insidegui/TwoMillionKit) (`Vendor/TwoMillionKit`) |
 | Clipboard | `NSPasteboard.general` via AppKit (macOS only) |
 | Transforms | Enum + instruction strings; case-insensitive lookup |
 | Testing | `swift test`; live Foundation Models tests skip on hosts without Apple Intelligence |
